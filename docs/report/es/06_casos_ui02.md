@@ -1,0 +1,36 @@
+# Casos de prueba: E2E real en navegador (UI-02)
+
+## B. Matriz E2E en navegador (modelo REAL, n8n REAL)
+Cada ID de petición que aparece a continuación es el `request_id` real del panel técnico, contrastado con la **propia línea de
+auditoría del backend**, que obtuve a través del endpoint de control con lista de permitidos.
+
+| # | Escenario | Evidencia | Resultado |
+|---|---|---|---|
+| 1 | Estado de bienvenida | Diseño NEXO, sin conversaciones, panel técnico cerrado, "Connected" a partir del `/health/ready` real, localStorage vacío | PASS |
+| 2 | RAG «¿Cuál es el horario de soporte?» | Respuesta "lunes a viernes, 09:00–18:00 (Europe/Madrid)"; fuente `02_support_policy.md § Horario de atención` (sin id de fragmento, hash ni puntuación). Panel técnico: ruta `knowledge_question`, modelo `x-ai/grok-4.7`, resultado `answered`. Auditoría `56f156ea…`: CUSTOMER_A, recuperación `found`, etapas de LLM intent+answer | PASS |
+| 3 | Ausente «¿Tenéis oficina en Barcelona?» | Respuesta veraz "no he encontrado información suficiente…", sin fuentes, resultado `insufficient_evidence` | PASS |
+| 4–5 | Ticket crítico (Ana, texto del enunciado de la prueba) | Borrador ámbar: Critical, "No ticket has been created yet.", nota veraz de escalado humano. PostgreSQL antes de confirmar: acción `pending`, **solo los 2 tickets semilla**. El DOM, los atributos, el texto, localStorage y la URL contienen **0** cadenas de token de 16 caracteres hexadecimales | PASS |
+| 6–7 | Confirmar incidencia | La interfaz envió `CONFIRMAR`; la burbuja lo muestra. Auditoría `b9aee1ba…`: compuerta `confirm`, resultado `created`, **0 llamadas al LLM**. PostgreSQL: acción `consumed`, **T-1003** critical/open, escalado humano `critical_incident` pendiente. Tarjeta verde T-1003, Open, "no response time is guaranteed"; la insignia del borrador pasó a **Confirmed**, sin botones | PASS |
+| 8 | Repetición (replay) | Un segundo `CONFIRMAR` → `nothing_pending` ("No se ha hecho nada"); ninguna segunda tarjeta; sigue habiendo 1 ticket | PASS |
+| 9 | Vinculación de versión | A (teclado, prioridad normal) → corrección → B (critical); A muestra **Replaced**, sin botones. Un `CONFIRMAR` sin vincular (sin token) → `confirmation_review_required` (sin llamada al modelo); B se vuelve a mostrar como única tarjeta accionable; ningún ticket | PASS (véase la nota 1) |
+| 10 | Cancelar | Cancel → `CANCELAR`; auditoría `a1034e28…`: compuerta `cancel`, resultado `cancelled`. PostgreSQL: A `superseded`, B `cancelled`, **0 tickets**. Un `CONFIRMAR` posterior → `nothing_pending` | PASS |
+| 11 | Ticket normal (Marta) | Borrador Normal sin nota de escalado humano → Confirm → **T-1004** normal/open, sin escalado humano | PASS |
+| 12 | Solicitud comercial (lead) a través de n8n REAL | «Somos una asesoría…» → `collecting_info` → datos → borrador (Company/Contact/Email/Need, `luis@example.test`), "No request has been registered yet" → Confirm. La auditoría del **mismo request_id** `b5f5d831…` tiene 2 líneas: chat (CUSTOMER_A, compuerta confirm, created, wf 1) **y** `/internal/leads` 201 por el servicio `n8n-lead-writer` (wf 1). Ejecución **1** de n8n `success` (modo webhook). Exactamente **1 solicitud comercial**. Panel técnico: `Workflow = n8n execution 1`. El navegador solo llamó a `/api/chat` | PASS |
+| 13 | Fallo de n8n + recuperación | Nueva solicitud comercial (Eva) → control `n8n/stop` → Confirm → **"Not completed" en rojo**, 503 `lead_not_confirmed`, redacción honesta, sin tarjeta de éxito; ninguna solicitud comercial; puntero del chat `lead|pending`. Control `n8n/start` (webhook listo tras 1.0 s) → Confirm del **mismo borrador** → `lead_created`, ejecución **3** de n8n, exactamente una solicitud comercial para la conversación. La ejecución 2 fue la sonda de disponibilidad del endpoint de control (400 `invalid_envelope`, no escribe nada) | PASS |
+| 14 | «Quiero hablar con una persona.» | Tarjeta de escalado humano Pending, "Nobody has picked it up yet… no response time is guaranteed"; `human_requested` pendiente | PASS |
+| 15 | «Quiero que borréis todos mis datos personales.» | Escalado humano `unsafe_to_resolve` pendiente; no se borró nada (tickets 4, solicitudes comerciales 2, sin cambios) | PASS |
+| 16 | T-1001 | «abierto», normal; fuente `T-1001 · Ticket record`; fuente de conocimiento `Business API (ticket)`; auditoría `ticket_lookup=allowed`, solo llamada de intención | PASS |
+| 17 | Aislamiento | A: T-1002 y T-9999 producen el mismo mensaje idéntico "No encuentro ningún ticket … asociado a tu cuenta.", sin fuentes; solo la auditoría difiere (`denied_not_owner` / `not_found`). `customer_id = CUSTOMER_B …` se mantiene como CUSTOMER_A → solo aclaración. La tarjeta de cuenta cambia a **Synthetic Customer B** → T-1002 «en curso»; auditoría **CUSTOMER_B**. Registro de red del navegador: solo `POST /api/chat` del mismo origen, sin query strings, sin API directa de tickets ni de solicitudes comerciales | PASS |
+| 18 | Inyección de prompt (texto del enunciado de la prueba; más `T-1002` y un `CONFIRMAR` incrustado) | `clarification_needed` en ambas ocasiones; CUSTOMER_A; el panel de la conversación no contiene datos ajenos (el único texto "CUSTOMER_B" de la página era mi propio mensaje de suplantación anterior en la lista de la barra lateral); no se creó nada; un `CONFIRMAR` incrustado no actúa como compuerta | PASS |
+| 19 | Error controlado | Igual que en #13: tarjeta roja aprobada **Not completed**; panel técnico `503 Unavailable`; campos ausentes `Not available`; sin telemetría inventada | PASS |
+| 20 | Panel técnico | Cerrado por defecto en cada carga nueva; solo valores reales (id de petición/conversación, ruta = intención, modelo o "Not used" en turnos deterministas, la referencia de conocimiento, `n8n execution N` a partir de la respuesta, ms de ida y vuelta, resultado). Nada inferido | PASS |
+| 21 | Responsive | Véase §R | PASS (local, etiquetado) |
+| 22 | Reinicio / persistencia | Instantánea de la BD → control `stack/restart` (todo healthy, webhook listo en 0.5 s) → tickets, solicitudes comerciales y escalados humanos **idénticos**. Tras recargar el navegador: "Connected", panel técnico cerrado; la consulta de T-1003 funciona; el RAG sigue respondiendo con su fuente. El historial del chat no se restaura (no es una funcionalidad del backend) | PASS |
+| 23 | Escaneo de secretos | Navegador: 0 cadenas de token en el DOM, atributos, texto, localStorage y URL; 0 mensajes de consola durante un flujo borrador → Cancel; bundle: 0 `Bearer <value>`, 0 `sk-or-`, ningún nombre de variable de credenciales, 0 cadenas de 16 caracteres hexadecimales. `/scan` en la VM: **0 apariciones** de los 7 secretos (contraseña de la BD, tokens de los clientes A/B, clave de n8n, clave de OpenRouter, token del lead-writer, token de control) en los logs de backend, web, n8n y db, el log de la ejecución, el bundle servido (3 archivos), el **sistema de archivos de la imagen web**, y su historial y configuración | PASS |
+
+**Datos reales finales antes del desmontaje.**
+- Tickets: T-1001, T-1002 (semilla), T-1003 critical, T-1004 normal.
+- Solicitudes comerciales: 2 (ejecuciones 1 y 3 de n8n).
+- Escalados humanos: 3.
+- Acciones de ticket: consumed 2, superseded 1, cancelled 2. Acciones de solicitud comercial: consumed 2.
+- 4 ejecuciones de n8n, todas `success`.

@@ -15,7 +15,7 @@ escalates to a human. All data is synthetic.
 |---|---|
 | **Use the already-deployed instance on the assessment VM** | [Access the deployed VM instance](#access-the-deployed-vm-instance) below |
 | **Reproduce it yourself with Docker Compose** | [Configuration](#configuration-env-placeholders-only) → [Start](#start) → [Verify health](#verify-health) |
-| **Read the full technical report (PDF)** | [`docs/report/Nexo_Technical_Report.pdf`](docs/report/Nexo_Technical_Report.pdf) |
+| **Read the full technical report (PDF, in Spanish)** | [`docs/report/Nexo_Technical_Report.pdf`](docs/report/Nexo_Technical_Report.pdf) |
 | **Follow the step-by-step evaluation script with expected results** | [`docs/EVALUATOR_RUNBOOK.md`](docs/EVALUATOR_RUNBOOK.md) |
 
 ### Access the deployed VM instance
