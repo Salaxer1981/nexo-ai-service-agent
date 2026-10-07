@@ -1,0 +1,11 @@
+# RAG-01F1 reference binding: LOCAL real PostgreSQL 17.11 + pgvector 0.8.7; embeddings from TEST-ONLY providers
+
+File 01_services.md with front matter `reference: 02_support_policy.md`:
+  ingestion refused: CorpusError(01_services.md: metadata reference must equal the file name) ; provider calls: 0 ; index unchanged: True
+
+Normal corpus: every returned reference resolves to the real file:
+  01_services.md § Catálogo de servicios | chunk services#catalogo-de-servicios | version c558f94a2988 == sha256(01_services.md)[:12] c558f94a2988: True
+  03_commercial_policy.md § Tarifas | chunk commercial-policy#tarifas | version 6b9ffe106bae == sha256(03_commercial_policy.md)[:12] 6b9ffe106bae: True
+  02_support_policy.md § Horario de atención | chunk support-policy#horario-de-atencion | version a2955c0c1634 == sha256(02_support_policy.md)[:12] a2955c0c1634: True
+  02_support_policy.md § Límites del agente y escalado | chunk support-policy#limites-del-agente-y-escalado | version a2955c0c1634 == sha256(02_support_policy.md)[:12] a2955c0c1634: True
+  01_services.md § Nuevas implantaciones y plazos | chunk services#nuevas-implantaciones-y-plazos | version c558f94a2988 == sha256(01_services.md)[:12] c558f94a2988: True

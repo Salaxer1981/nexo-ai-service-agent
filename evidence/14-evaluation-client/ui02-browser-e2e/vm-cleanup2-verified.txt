@@ -1,0 +1,57 @@
+# UI-02 — VERIFIED cleanup v2: all UI-02 residue of run 1 removed; VM back to baseline before run 2.
+# REAL VM (Ubuntu 24.04.4, Docker 29.8.2). Candidate ca86d7c3459f713319aa80de482cbcdb8c22fa01 (branch ui02-candidate).
+# Sanitized copy of raw/cleanup2.raw.log: 0 docker pull-progress lines removed; nothing else changed. OpenRouter key: 0; control token: 0.
+
+===== FOUND =====
+work dir present: yes
+harness shells: 0 | control endpoint processes: 1
+nexo-web-1 Up 15 minutes (healthy)
+nexo-backend-1 Up 15 minutes (healthy)
+nexo-db-1 Up 15 minutes (healthy)
+nexo-n8n-1 Up 14 minutes (healthy)
+===== CLEANUP =====
+stopped UI-02 process 127628
+ Container nexo-db-1 Removing 
+ Container nexo-db-1 Removed 
+ Volume nexo_db_data Removing 
+ Network nexo_internal Removing 
+ Volume nexo_n8n_data Removing 
+ Network nexo_web Removing 
+ Network nexo_automation Removing 
+ Volume nexo_db_data Removed 
+ Volume nexo_n8n_data Removed 
+ Network nexo_automation Removed 
+ Network nexo_web Removed 
+ Network nexo_internal Removed 
+Untagged: nexo-web:0.1.0
+Untagged: nexo-backend:0.1.0
+Untagged: pgvector/pgvector:0.8.7-pg17-bookworm
+Untagged: n8nio/n8n:2.42.3
+Total:	731.3MB
+===== FINAL STATE (post-cleanup) =====
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+IMAGE   ID             DISK USAGE   CONTENT SIZE   EXTRA
+DRIVER    VOLUME NAME
+NETWORK ID     NAME      DRIVER    SCOPE
+6381b14192e7   bridge    bridge    local
+5885cec536ca   host      host      local
+447cca8214c8   none      null      local
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          0         0         0B        0B
+Containers      0         0         0B        0B
+Local Volumes   0         0         0B        0B
+Build Cache     0         0         0B        0B
+LISTEN 0      4096         0.0.0.0:9922 0.0.0.0:*
+LISTEN 0      4096      127.0.0.54:53   0.0.0.0:*
+LISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*
+LISTEN 0      4096            [::]:9922    [::]:*
+VERIFY nexo containers: 0
+VERIFY nexo volumes: 0
+VERIFY nexo networks: 0
+VERIFY UI-02 harness/control processes: 0
+VERIFY work dir: removed
+VERIFY listener :8000: 0
+VERIFY listener :5432: 0
+VERIFY listener :5678: 0
+VERIFY listener :8080: 0
+VERIFY listener :8099: 0

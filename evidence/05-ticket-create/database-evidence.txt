@@ -1,0 +1,34 @@
+# APP-02 representative database evidence (throwaway PostgreSQL 17.11, synthetic data)
+
+1. prepare (priority normal) -> HTTP 201
+2. prepare again with priority critical (same conversation) -> first is superseded -> HTTP 201
+3. confirm superseded action #1 -> HTTP 409  confirmation_invalid
+4. confirm action #2 with key evidence-k1 -> HTTP 201 created
+5. retry same key evidence-k1 -> HTTP 201 replay
+6. reuse consumed action #2 with new key evidence-k2 -> HTTP 409  confirmation_already_used
+7. CUSTOMER_B tries CUSTOMER_A's action #2 -> HTTP 404
+
+## schema_migrations
+version
+0001_initial_schema
+0002_synthetic_seed
+0003_priority_and_ticket_confirmation
+
+## pending_ticket_actions (this scenario)
+id | customer_id | conversation_id | priority | status | payload_hash | consumed
+f1175a8c-0e0e-4291-86b9-647e1a668ffa | CUSTOMER_A | conv-evidence | normal | superseded | 65c05cbba0581fcd… | False
+aafc1d29-afe3-44e1-98c1-750dd145a06a | CUSTOMER_A | conv-evidence | critical | consumed | 3b71466368a3bb05… | True
+
+## tickets (seed + created from this scenario)
+id | customer_id | priority | status | source_action_id
+a0000000-0000-4000-8000-000000000001 | CUSTOMER_A | normal | open | None
+b0000000-0000-4000-8000-000000000001 | CUSTOMER_B | normal | in_progress | None
+33acf362-b0f3-4ebd-a067-03de9334cad7 | CUSTOMER_A | critical | open | aafc1d29-afe3-44e1-98c1-750dd145a06a
+
+## idempotency_keys (this scenario)
+customer_id | operation | idempotency_key | request_hash | pending_action_id | ticket_id | response_status
+CUSTOMER_A | ticket_confirm | evidence-k1 | 18a698fa4d64a12c… | aafc1d29-afe3-44e1-98c1-750dd145a06a | 33acf362-b0f3-4ebd-a067-03de9334cad7 | 201
+
+## tickets per source action (must be <= 1)
+source_action_id | count
+(no rows)

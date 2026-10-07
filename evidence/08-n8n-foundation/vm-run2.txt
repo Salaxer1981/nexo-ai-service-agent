@@ -1,0 +1,231 @@
+# N8N-01 VM validation — RUN 2 (accepted), sanitized
+# Source: ssh -p 9922 user@<VM> "EXPECTED_SHA=e23679d…; $(cat vm-validate.sh)" < n8n.bundle (owner-run; one SSH password typed at prompt, not captured)
+# Captured: 2026-10-07. Secrets (DB password, 2 tokens, N8N_ENCRYPTION_KEY) generated on the VM, never printed; VM-side counts in run log and container logs: 0.
+# Image-pull progress lines removed; otherwise unchanged (CRs removed).
+
+
+===== 0. PRE-CHECKS =====
+pre-checks passed
+$ docker system df
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          0         0         0B        0B
+Containers      0         0         0B        0B
+Local Volumes   0         0         0B        0B
+Build Cache     0         0         0B        0B
+
+===== 1. CHECKOUT EXACT COMMIT =====
+$ git clone -q /home/user/nexo-n8n01/n8n.bundle /home/user/nexo-n8n01/repo
+warning: remote HEAD refers to nonexistent ref, unable to checkout
+CHECK PASS: checked-out commit is e23679dbb1ea5fbc586ee34df38d3db936bfaf54
+
+===== 2. VM-LOCAL .env (generated; values never printed) =====
+$ stat -c %A %n .env
+-rw------- .env
+.env names: POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD AUTH_TOKEN_CUSTOMER_A AUTH_TOKEN_CUSTOMER_B N8N_ENCRYPTION_KEY 
+
+===== 3. CONFIG + BUILD + START =====
+CHECK PASS: docker compose config valid
+#13 resolving provenance for metadata file
+#13 DONE 0.0s
+ Image nexo-backend:0.1.0 Built 
+$ docker compose up -d --wait --wait-timeout 300
+ Image n8nio/n8n:2.42.3 Pulling 
+ Image pgvector/pgvector:0.8.7-pg17-bookworm Pulling 
+ Image pgvector/pgvector:0.8.7-pg17-bookworm Pulled 
+ Image n8nio/n8n:2.42.3 Pulled 
+ Volume nexo_n8n_data Creating 
+ Network nexo_internal Creating 
+ Volume nexo_n8n_data Creating 
+ Network nexo_internal Creating 
+ Volume nexo_db_data Creating 
+ Volume nexo_db_data Creating 
+ Network nexo_automation Creating 
+ Network nexo_automation Creating 
+ Volume nexo_n8n_data Created 
+ Volume nexo_n8n_data Created 
+ Volume nexo_db_data Created 
+ Volume nexo_db_data Created 
+ Network nexo_automation Created 
+ Network nexo_automation Created 
+ Container nexo-n8n-1 Creating 
+ Network nexo_internal Created 
+ Network nexo_internal Created 
+ Container nexo-db-1 Creating 
+ Container nexo-db-1 Created 
+ Container nexo-backend-1 Creating 
+ Container nexo-n8n-1 Created 
+ Container nexo-backend-1 Created 
+ Container nexo-db-1 Starting 
+ Container nexo-n8n-1 Starting 
+ Container nexo-db-1 Started 
+ Container nexo-db-1 Waiting 
+ Container nexo-n8n-1 Started 
+ Container nexo-db-1 Healthy 
+ Container nexo-backend-1 Starting 
+ Container nexo-backend-1 Started 
+ Container nexo-n8n-1 Waiting 
+ Container nexo-db-1 Waiting 
+ Container nexo-backend-1 Waiting 
+ Container nexo-n8n-1 Healthy 
+ Container nexo-db-1 Healthy 
+ Container nexo-backend-1 Healthy 
+$ docker compose ps --format table {{.Service}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}
+SERVICE   IMAGE                                   STATUS                    PORTS
+backend   nexo-backend:0.1.0                      Up 5 seconds (healthy)    127.0.0.1:8000->8000/tcp
+db        pgvector/pgvector:0.8.7-pg17-bookworm   Up 11 seconds (healthy)   5432/tcp
+n8n       n8nio/n8n:2.42.3                        Up 11 seconds (healthy)   127.0.0.1:5678->5678/tcp
+CHECK PASS: db healthy
+CHECK PASS: backend healthy
+CHECK PASS: n8n healthy
+CHECK PASS: n8n /healthz 200 via host loopback
+CHECK PASS: backend /health/ready 200 via host loopback
+$ docker compose exec -T n8n n8n --version
+2.42.3
+
+===== 4. HOST EXPOSURE =====
+$ ss -tlnH
+LISTEN 0      4096       127.0.0.1:8000 0.0.0.0:*
+LISTEN 0      4096       127.0.0.1:5678 0.0.0.0:*
+LISTEN 0      4096         0.0.0.0:9922 0.0.0.0:*
+LISTEN 0      4096      127.0.0.54:53   0.0.0.0:*
+LISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*
+LISTEN 0      4096            [::]:9922    [::]:*
+$ docker port f2825910b474c1a2625f04cc58d30cb9cdd8bbf238f57ed3b6b548088fd061e9
+5678/tcp -> 127.0.0.1:5678
+CHECK PASS: n8n published only on 127.0.0.1:5678
+CHECK PASS: no host listener on 5432
+CHECK PASS: new listeners only on loopback (8000, 5678); public only :9922
+
+===== 5. NETWORKS (least privilege) =====
+nexo_internal: nexo-db-1 nexo-backend-1 
+nexo_automation: nexo-backend-1 nexo-n8n-1 
+CHECK PASS: automation = backend + n8n only
+CHECK PASS: internal = backend + db only
+n8n attached to: nexo_automation 
+backend attached to: nexo_automation nexo_internal 
+db attached to: nexo_internal 
+CHECK PASS: n8n container only on nexo_automation
+CHECK PASS: backend container on nexo_automation + nexo_internal
+
+===== 5b. ENVIRONMENT PASSED TO n8n (names only, values never printed) =====
+n8n env names: GENERIC_TIMEZONE N8N_DIAGNOSTICS_ENABLED N8N_ENCRYPTION_KEY N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS N8N_HOST N8N_PORT N8N_PROTOCOL N8N_RELEASE_TYPE N8N_VERSION_NOTIFICATIONS_ENABLED NODE_ENV NODE_PATH NODE_VERSION NPM_CONFIG_UPDATE_NOTIFIER PATH SHELL TZ 
+CHECK PASS: no application secrets in n8n env (POSTGRES_*, AUTH_TOKEN_*)
+
+===== 6. CONNECTIVITY (no LLM, no business write) =====
+$ docker compose exec -T n8n node -e fetch('http://backend:8000/health').then(async r=>{console.log('n8n -> http://backend:8000/health:', r.status, await r.text()); process.exit(r.status===200?0:1)}).catch(e=>{console.log('error', e.message); process.exit(1)})
+n8n -> http://backend:8000/health: 200 {"status":"ok"}
+CHECK PASS: n8n reaches backend via Docker DNS
+$ docker compose exec -T n8n node -e require('dns').lookup('db',(e,a)=>{console.log(e?'n8n cannot resolve db: '+e.code:'n8n RESOLVED db -> '+a); process.exit(e?0:1)})
+n8n cannot resolve db: EAI_AGAIN
+CHECK PASS: n8n cannot resolve the database host
+
+===== 7. FIRST-RUN OWNER STATE (info only; internal endpoint, not a contract) =====
+userManagement.showSetupOnFirstLoad = True
+
+===== 8. PERSISTENCE (harmless inactive marker workflow via n8n CLI) =====
+ nexo-n8n-1 Copying /home/user/nexo-n8n01/marker.json to nexo-n8n-1:/tmp/marker.json
+ nexo-n8n-1 Copied /home/user/nexo-n8n01/marker.json to nexo-n8n-1:/tmp/marker.json
+$ n8n_exec n8n import:workflow --input=/tmp/marker.json
+Importing 1 workflows...
+Successfully imported 1 workflow.
+CHECK PASS: marker workflow stored
+encryption key fingerprint before: cb3b097b8d7f5207
+$ docker compose rm -sf n8n
+ Container nexo-n8n-1 Stopping 
+ Container nexo-n8n-1 Stopped 
+Going to remove nexo-n8n-1
+ Container nexo-n8n-1 Removing 
+ Container nexo-n8n-1 Removed 
+CHECK PASS: n8n_data volume kept
+$ docker compose up -d --wait --wait-timeout 180 n8n
+ Container nexo-n8n-1 Creating 
+ Container nexo-n8n-1 Created 
+ Container nexo-n8n-1 Starting 
+ Container nexo-n8n-1 Started 
+ Container nexo-n8n-1 Waiting 
+ Container nexo-n8n-1 Healthy 
+CHECK PASS: n8n container recreated
+CHECK PASS: marker workflow survived recreation
+CHECK PASS: n8n healthy after recreation
+encryption key fingerprint after:  cb3b097b8d7f5207
+CHECK PASS: same encryption key across recreation (fingerprint match)
+CHECK PASS: no encryption-key mismatch reported by n8n
+
+===== 8b. APP-03A HANDOFF SMOKE (authenticated, synthetic; tokens read from .env, never printed) =====
+  first: HTTP 201 Idempotency-Outcome=created id=b6253856-269b-47d8-b063-c990739b2723 customer_id=CUSTOMER_A status=pending
+  replay: HTTP 201 Idempotency-Outcome=replay id=b6253856-269b-47d8-b063-c990739b2723 customer_id=CUSTOMER_A status=pending
+CHECK PASS: handoff created 201 pending for CUSTOMER_A
+CHECK PASS: same key replays same handoff id
+CHECK PASS: status_message says pending human attention
+CHECK PASS: no false human-attendance wording
+handoff rows for this smoke (count|statuses): 1|pending
+
+===== 9. SECRET HYGIENE =====
+POSTGRES_PASSWORD value: run log 0, container logs 0
+CHECK PASS: POSTGRES_PASSWORD not in logs
+AUTH_TOKEN_CUSTOMER_A value: run log 0, container logs 0
+CHECK PASS: AUTH_TOKEN_CUSTOMER_A not in logs
+AUTH_TOKEN_CUSTOMER_B value: run log 0, container logs 0
+CHECK PASS: AUTH_TOKEN_CUSTOMER_B not in logs
+N8N_ENCRYPTION_KEY value: run log 0, container logs 0
+CHECK PASS: N8N_ENCRYPTION_KEY not in logs
+
+===== 10. RESULT =====
+N8N-01 VM VALIDATION: ALL CHECKS PASS
+
+===== 11. CLEANUP =====
+$ docker compose down -v
+ Container nexo-backend-1 Stopping 
+ Container nexo-n8n-1 Stopping 
+ Container nexo-n8n-1 Stopped 
+ Container nexo-n8n-1 Removing 
+ Container nexo-n8n-1 Removed 
+ Container nexo-backend-1 Stopped 
+ Container nexo-backend-1 Removing 
+ Container nexo-backend-1 Removed 
+ Container nexo-db-1 Stopping 
+ Container nexo-db-1 Stopped 
+ Container nexo-db-1 Removing 
+ Container nexo-db-1 Removed 
+ Volume nexo_db_data Removing 
+ Volume nexo_n8n_data Removing 
+ Network nexo_internal Removing 
+ Network nexo_automation Removing 
+ Volume nexo_db_data Removed 
+ Volume nexo_n8n_data Removed 
+ Network nexo_internal Removed 
+ Network nexo_automation Removed 
+$ docker image rm nexo-backend:0.1.0 pgvector/pgvector:0.8.7-pg17-bookworm n8nio/n8n:2.42.3
+Untagged: nexo-backend:0.1.0
+Deleted: sha256:2c48c7cdbc80c09372484e7ef0957709635d00cc2399ba8ba8402a2d9bf73b07
+Untagged: pgvector/pgvector:0.8.7-pg17-bookworm
+Deleted: sha256:ac08538c6f8b9904c33c8224c5e5706dbe760aca29db1d096972b4052c22a75d
+Untagged: n8nio/n8n:2.42.3
+Deleted: sha256:240eaa2a3d491adac5817aa4c3f1c521bb18ec79f6e448517158d5220ee0f37b
+Total:	249MB
+
+===== 12. FINAL STATE =====
+$ docker ps -a
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+$ docker images
+IMAGE   ID             DISK USAGE   CONTENT SIZE   EXTRA
+$ docker volume ls
+DRIVER    VOLUME NAME
+$ docker network ls
+NETWORK ID     NAME      DRIVER    SCOPE
+6381b14192e7   bridge    bridge    local
+5885cec536ca   host      host      local
+447cca8214c8   none      null      local
+$ docker system df
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          0         0         0B        0B
+Containers      0         0         0B        0B
+Local Volumes   0         0         0B        0B
+Build Cache     0         0         0B        0B
+$ ss -tlnH
+LISTEN 0      4096         0.0.0.0:9922 0.0.0.0:*
+LISTEN 0      4096      127.0.0.54:53   0.0.0.0:*
+LISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*
+LISTEN 0      4096            [::]:9922    [::]:*
+$ test ! -e /home/user/nexo-n8n01
+temporary directory removed

@@ -1,0 +1,56 @@
+# APP-03B regression groups, repeats and mutation checks (2026-10-07)
+
+1_leads_focused: ======================= 47 passed, 1 warning in 26.55s ========================
+2_app01_auth_isolation: ======================= 24 passed, 1 warning in 16.82s ========================
+3_app02_tickets: ======================= 55 passed, 1 warning in 38.37s ========================
+4_app03a_handoffs: ======================= 44 passed, 1 warning in 19.47s ========================
+5_migrations_startup: ======================= 12 passed, 1 warning in 13.68s ========================
+6_static_compose: ======================== 31 passed, 1 warning in 0.09s ========================
+7_leads_repeat1: ======================= 41 passed, 1 warning in 27.85s ========================
+7_leads_repeat2: ======================= 41 passed, 1 warning in 27.74s ========================
+7_leads_repeat3: ======================= 41 passed, 1 warning in 28.56s ========================
+8_full_run1: ============ 220 passed, 2 skipped, 1 warning in 86.25s (0:01:26) =============
+8_full_run2: ============ 220 passed, 2 skipped, 1 warning in 87.35s (0:01:27) =============
+
+## Mutation checks (tests/test_leads.py; each mutation alone; files restored byte-exact)
+## L1 private write skips 'confirmed' check (confirmation bypass): 1 failed, 40 passed, 1 warning in 27.22s
+   FAILED test_service_credential_cannot_create_unconfirmed_or_altered_leads
+## L2 private write skips payload fingerprint check (tampering): 2 failed, 39 passed, 1 warning in 26.33s
+   FAILED test_service_credential_cannot_create_unconfirmed_or_altered_leads
+   FAILED test_tampered_payload_is_refused_end_to_end
+## L3 service auth accepts customer credentials: 21 failed, 20 passed, 1 warning in 24.40s
+   FAILED test_changing_any_field_requires_new_confirmation[company_name-Other
+   FAILED test_changing_any_field_requires_new_confirmation[contact_email-ana@example.test]
+   FAILED test_changing_any_field_requires_new_confirmation[contact_name-Ana
+   FAILED test_changing_any_field_requires_new_confirmation[need-Synthetic:
+   FAILED test_committed_but_response_lost_recovers_same_lead
+   FAILED test_confirm_and_private_write_are_correlated_without_secrets
+   FAILED test_confirm_creates_lead_only_through_the_workflow
+   FAILED test_consumed_action_with_new_key_is_rejected
+   FAILED test_database_enforces_one_lead_per_action_and_valid_email
+   FAILED test_database_failure_in_lead_write_rolls_back_and_is_retryable
+   FAILED test_duplicate_workflow_delivery_creates_one_lead
+   FAILED test_failed_hop_never_reports_success_and_is_retryable[fail_500]
+   FAILED test_failed_hop_never_reports_success_and_is_retryable[internal_unreachable]
+   FAILED test_failed_hop_never_reports_success_and_is_retryable[unreachable]
+   FAILED test_other_session_cannot_confirm_and_nothing_leaks
+   FAILED test_private_write_rejects_anything_but_the_service_credential[customer_a]
+   FAILED test_private_write_rejects_anything_but_the_service_credential[customer_b]
+   FAILED test_same_key_different_action_conflicts
+   FAILED test_same_key_replays_without_calling_n8n_again
+   FAILED test_service_credential_cannot_create_unconfirmed_or_altered_leads
+   FAILED test_tampered_payload_is_refused_end_to_end
+## L4 confirm trusts the workflow's word instead of PostgreSQL: 1 failed, 40 passed, 1 warning in 26.94s
+   FAILED test_workflow_success_without_persisted_lead_is_not_success
+## L5 no recovery after lost response (DB not consulted on hop failure): 1 failed, 40 passed, 1 warning in 28.82s
+   FAILED test_committed_but_response_lost_recovers_same_lead
+## L6 Idempotency-Key not bound to a single action: 41 passed, 1 warning in 28.95s
+## L7 confirmation not required to match the prepared data: 4 failed, 37 passed, 1 warning in 26.97s
+   FAILED test_changing_any_field_requires_new_confirmation[company_name-Other
+   FAILED test_changing_any_field_requires_new_confirmation[contact_email-ana@example.test]
+   FAILED test_changing_any_field_requires_new_confirmation[contact_name-Ana
+   FAILED test_changing_any_field_requires_new_confirmation[need-Synthetic:
+restored: True
+
+## L6b double mutation (explicit key check AND unique index pending_lead_actions_confirm_key removed)
+test_same_key_different_action_conflicts: 1 failed (assert 201 == 409): a second lead WOULD be created; restored: True

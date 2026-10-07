@@ -1,0 +1,42 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+id_*
+secrets/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+.coverage
+htmlcov/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Raw (unsanitized) evidence must never be committed
+evidence/**/raw/
+*.raw.log
+
+# Local test tooling (e.g. PostgreSQL binaries), never committed
+.tools/
+
+# Frontend dependencies (installed locally from package-lock.json)
+node_modules/
+*.tsbuildinfo
+
+# Report build intermediate (regenerate with docs/report/build_report.py)
+docs/report/nexo-technical-report.html

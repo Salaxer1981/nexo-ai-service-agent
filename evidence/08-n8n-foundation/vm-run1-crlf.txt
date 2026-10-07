@@ -1,0 +1,10 @@
+# N8N-01 VM validation — RUN 1 (did not execute), kept for audit history
+# Cause: the validation script had been edited with Python write_text() on Windows, which wrote CRLF line endings.
+# The remote bash saw '\r' on every line: 'set -u' failed and an unclosed function definition caused a parse error at
+# line 39, so bash aborted before mkdir/clone/docker/bundle read. VM unchanged. Fixed: script converted to LF,
+# verified by byte-level CR count (0) of the exact remote command string; re-run as RUN 2.
+
+bash: line 7: set: -: invalid option
+set: usage: set [-abefhkmnptuvxBCEHPT] [-o option-name] [--] [-] [arg ...]
+bash: -c: line 39: syntax error near unexpected token `)'
+bash: -c: line 39: `    "$(tok)" "$(tok)" "$(tok)" "$(python3 -c 'import secrets; print(secrets.token_hex(32))')" > .env )'

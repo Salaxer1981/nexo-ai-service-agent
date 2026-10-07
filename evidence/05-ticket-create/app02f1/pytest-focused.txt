@@ -1,0 +1,70 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Scripts\python.exe
+rootdir: C:\Users\User\Desktop\nexo-ai-service-agent
+configfile: pytest.ini
+plugins: anyio-4.15.1
+collecting ... collected 55 items
+
+tests/test_ticket_create.py::test_prepare_creates_no_ticket PASSED       [  1%]
+tests/test_ticket_create.py::test_prepare_returns_summary_bound_to_exact_data PASSED [  3%]
+tests/test_ticket_create.py::test_confirm_creates_exactly_one_ticket_owned_by_caller PASSED [  5%]
+tests/test_ticket_create.py::test_customer_a_cannot_confirm_customer_b_action PASSED [  7%]
+tests/test_ticket_create.py::test_customer_id_input_cannot_override_authentication PASSED [  9%]
+tests/test_ticket_create.py::test_changing_any_field_invalidates_previous_confirmation[contact_name-Someone Else (synthetic)] PASSED [ 10%]
+tests/test_ticket_create.py::test_changing_any_field_invalidates_previous_confirmation[subject-Synthetic: different subject] PASSED [ 12%]
+tests/test_ticket_create.py::test_changing_any_field_invalidates_previous_confirmation[description-Synthetic: different description.] PASSED [ 14%]
+tests/test_ticket_create.py::test_changing_any_field_invalidates_previous_confirmation[priority-normal] PASSED [ 16%]
+tests/test_ticket_create.py::test_same_key_same_action_returns_same_ticket_without_duplicates PASSED [ 18%]
+tests/test_ticket_create.py::test_same_key_with_different_request_conflicts PASSED [ 20%]
+tests/test_ticket_create.py::test_idempotency_keys_are_scoped_per_customer PASSED [ 21%]
+tests/test_ticket_create.py::test_retry_after_lost_response_returns_committed_ticket PASSED [ 23%]
+tests/test_ticket_create.py::test_consumed_confirmation_cannot_create_another_ticket PASSED [ 25%]
+tests/test_ticket_create.py::test_database_rejects_second_ticket_for_same_action PASSED [ 27%]
+tests/test_ticket_create.py::test_concurrent_confirmations_create_one_ticket[True] PASSED [ 29%]
+tests/test_ticket_create.py::test_concurrent_confirmations_create_one_ticket[False] PASSED [ 30%]
+tests/test_ticket_create.py::test_missing_or_invalid_idempotency_key_is_rejected[None] PASSED [ 32%]
+tests/test_ticket_create.py::test_missing_or_invalid_idempotency_key_is_rejected[] PASSED [ 34%]
+tests/test_ticket_create.py::test_missing_or_invalid_idempotency_key_is_rejected[has space] PASSED [ 36%]
+tests/test_ticket_create.py::test_missing_or_invalid_idempotency_key_is_rejected[xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx] PASSED [ 38%]
+tests/test_ticket_create.py::test_missing_or_invalid_idempotency_key_is_rejected[bad/char] PASSED [ 40%]
+tests/test_ticket_create.py::test_invalid_priority_is_rejected[urgent] PASSED [ 41%]
+tests/test_ticket_create.py::test_invalid_priority_is_rejected[high] PASSED [ 43%]
+tests/test_ticket_create.py::test_invalid_priority_is_rejected[medium] PASSED [ 45%]
+tests/test_ticket_create.py::test_invalid_priority_is_rejected[low] PASSED [ 47%]
+tests/test_ticket_create.py::test_invalid_priority_is_rejected[Critical] PASSED [ 49%]
+tests/test_ticket_create.py::test_invalid_priority_is_rejected[] PASSED  [ 50%]
+tests/test_ticket_create.py::test_invalid_priority_is_rejected[None] PASSED [ 52%]
+tests/test_ticket_create.py::test_canonical_priorities_create_tickets[normal] PASSED [ 54%]
+tests/test_ticket_create.py::test_canonical_priorities_create_tickets[critical] PASSED [ 56%]
+tests/test_ticket_create.py::test_plain_confirmed_flag_cannot_bypass_binding PASSED [ 58%]
+tests/test_ticket_create.py::test_no_ticket_when_confirmation_validation_fails PASSED [ 60%]
+tests/test_ticket_create.py::test_database_unavailable_never_reports_success PASSED [ 61%]
+tests/test_ticket_create.py::test_failure_inside_transaction_rolls_back_ticket PASSED [ 63%]
+tests/test_ticket_create.py::test_audit_log_records_ids_and_outcomes PASSED [ 65%]
+tests/test_ticket_create.py::test_audit_log_contains_no_credentials_or_ticket_content PASSED [ 67%]
+tests/test_priority_migration.py::test_seed_priorities_are_mapped_to_normal PASSED [ 69%]
+tests/test_priority_migration.py::test_canonical_priorities_are_accepted[normal] PASSED [ 70%]
+tests/test_priority_migration.py::test_canonical_priorities_are_accepted[critical] PASSED [ 72%]
+tests/test_priority_migration.py::test_legacy_or_unknown_priorities_are_rejected[low] PASSED [ 74%]
+tests/test_priority_migration.py::test_legacy_or_unknown_priorities_are_rejected[medium] PASSED [ 76%]
+tests/test_priority_migration.py::test_legacy_or_unknown_priorities_are_rejected[high] PASSED [ 78%]
+tests/test_priority_migration.py::test_legacy_or_unknown_priorities_are_rejected[urgent] PASSED [ 80%]
+tests/test_priority_migration.py::test_legacy_or_unknown_priorities_are_rejected[Critical] PASSED [ 81%]
+tests/test_priority_migration.py::test_legacy_or_unknown_priorities_are_rejected[] PASSED [ 83%]
+tests/test_priority_migration.py::test_migration_refuses_to_guess_high_or_urgent[high] PASSED [ 85%]
+tests/test_priority_migration.py::test_migration_refuses_to_guess_high_or_urgent[urgent] PASSED [ 87%]
+tests/test_prepare_concurrency.py::test_concurrent_prepare_same_group_is_serialized PASSED [ 89%]
+tests/test_prepare_concurrency.py::test_different_groups_do_not_block_or_supersede_each_other[other_customer] PASSED [ 90%]
+tests/test_prepare_concurrency.py::test_different_groups_do_not_block_or_supersede_each_other[other_conversation] PASSED [ 92%]
+tests/test_prepare_concurrency.py::test_different_groups_do_not_block_or_supersede_each_other[no_conversation] PASSED [ 94%]
+tests/test_prepare_concurrency.py::test_many_concurrent_prepares_leave_exactly_one_pending PASSED [ 96%]
+tests/test_prepare_concurrency.py::test_database_allows_only_one_pending_action_per_group PASSED [ 98%]
+tests/test_prepare_concurrency.py::test_lock_key_is_deterministic_and_group_specific PASSED [100%]
+
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 55 passed, 1 warning in 39.24s ========================

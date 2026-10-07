@@ -1,0 +1,15 @@
+# RAG-01 regression groups (2026-10-07)
+
+1_rag_focused: ================== 27 passed, 1 skipped, 1 warning in 18.35s ==================
+2_migrations_startup: ======================= 23 passed, 1 warning in 19.40s ========================
+3_app01: ======================= 24 passed, 1 warning in 17.56s ========================
+4_app02: ======================= 44 passed, 1 warning in 34.35s ========================
+5_app03a: ======================= 44 passed, 1 warning in 18.97s ========================
+6_app03b: ======================= 47 passed, 1 warning in 27.41s ========================
+7_static: ======================== 39 passed, 1 warning in 0.22s ========================
+8_full_run1: ============ 248 passed, 4 skipped, 1 warning in 97.91s (0:01:37) =============
+8_full_run2: ============ 248 passed, 4 skipped, 1 warning in 104.61s (0:01:44) ============
+
+Skipped (opt-in) in these runs: evidence dumps for tickets, handoffs, leads + the live OpenRouter smoke (run separately:
+live-embedding-smoke.json). tests/test_evidence_dump_rag.py was added after these runs; the final full run is appended below.
+8_full_run3 (after adding test_evidence_dump_rag.py): 248 passed, 5 skipped, 1 warning in 97.72s (0:01:37)

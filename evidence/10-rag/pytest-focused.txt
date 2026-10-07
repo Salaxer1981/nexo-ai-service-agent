@@ -1,0 +1,45 @@
+# RAG-01 focused tests (local: Windows 11, Python 3.12.10, PostgreSQL 17.11 + pgvector 0.8.7 built from official source; TEST-ONLY embeddings unless stated)
+
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Scripts\python.exe
+rootdir: C:\Users\User\Desktop\nexo-ai-service-agent
+configfile: pytest.ini
+plugins: anyio-4.15.1
+collecting ... collected 28 items
+
+tests/test_rag.py::test_corpus_is_exactly_the_four_pdf_documents_verbatim PASSED [  3%]
+tests/test_rag.py::test_chunking_is_deterministic_and_stable PASSED      [  7%]
+tests/test_rag.py::test_line_endings_do_not_change_identity PASSED       [ 10%]
+tests/test_rag.py::test_long_sections_split_into_stable_parts PASSED     [ 14%]
+tests/test_rag.py::test_invalid_corpus_files_are_refused[# no header\n\n## A\n\ntext-missing metadata] PASSED [ 17%]
+tests/test_rag.py::test_invalid_corpus_files_are_refused[---\nsource_id: x\ntitle: X\n---\n## A\n\ntext-reference] PASSED [ 21%]
+tests/test_rag.py::test_invalid_corpus_files_are_refused[---\nsource_id: Bad_Id\ntitle: X\nreference: x.md\n---\n## A\n\ntext-invalid source_id] PASSED [ 25%]
+tests/test_rag.py::test_invalid_corpus_files_are_refused[---\nsource_id: x\ntitle: X\nreference: x.md\n---\n## A\n\none\n\n## A\n\ntwo-duplicate section] PASSED [ 28%]
+tests/test_rag.py::test_invalid_corpus_files_are_refused[---\nsource_id: x\ntitle: X\nreference: x.md\n---\nno sections-no '## ' sections] PASSED [ 32%]
+tests/test_rag.py::test_duplicate_source_ids_are_refused PASSED          [ 35%]
+tests/test_rag.py::test_first_ingest_persists_vectors_and_metadata PASSED [ 39%]
+tests/test_rag.py::test_reingest_unchanged_is_idempotent PASSED          [ 42%]
+tests/test_rag.py::test_changed_document_replaces_only_the_changed_chunk PASSED [ 46%]
+tests/test_rag.py::test_removed_section_and_deleted_document_are_cleaned_up PASSED [ 50%]
+tests/test_rag.py::test_provider_failure_leaves_previous_index_intact PASSED [ 53%]
+tests/test_rag.py::test_model_change_reembeds_everything PASSED          [ 57%]
+tests/test_rag.py::test_ingest_cli_prints_counts_only PASSED             [ 60%]
+tests/test_rag.py::test_ingest_cli_refuses_without_api_key PASSED        [ 64%]
+tests/test_rag.py::test_search_ranks_and_references_the_right_section PASSED [ 67%]
+tests/test_rag.py::test_every_reference_resolves_to_an_indexed_source_version PASSED [ 71%]
+tests/test_rag.py::test_unrelated_query_reports_insufficient_evidence PASSED [ 75%]
+tests/test_rag.py::test_top_k_and_input_validation PASSED                [ 78%]
+tests/test_rag.py::test_auth_required_and_identity_cannot_alter_shared_corpus PASSED [ 82%]
+tests/test_rag.py::test_failures_return_safe_503 PASSED                  [ 85%]
+tests/test_rag.py::test_database_unavailable_returns_503 PASSED          [ 89%]
+tests/test_rag.py::test_audit_has_safe_facts_only PASSED                 [ 92%]
+tests/test_rag.py::test_database_stores_real_pgvector_values PASSED      [ 96%]
+tests/test_rag_live.py::test_live_openrouter_embeddings_through_pgvector SKIPPED [100%]
+
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================== 27 passed, 1 skipped, 1 warning in 18.35s ==================

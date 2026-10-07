@@ -1,0 +1,32 @@
+# APP-03A representative handoff evidence (throwaway PostgreSQL 17.11, synthetic data)
+
+1. CUSTOMER_A creates handoff (key evidence-h1) -> HTTP 201 created {"id": "f8bcce1e-f347-4355-b42f-53018f86ccd4", "customer_id": "CUSTOMER_A", "status": "pending"}
+2. retry same key + same request -> HTTP 201 replay {"id": "f8bcce1e-f347-4355-b42f-53018f86ccd4", "customer_id": "CUSTOMER_A", "status": "pending"}
+3. same key + different summary -> HTTP 409 conflict {"code": "idempotency_key_conflict"}
+4. CUSTOMER_B, human_requested (key evidence-h2) -> HTTP 201 created {"id": "cd4d62eb-2142-4e9b-b04e-992c3230462f", "customer_id": "CUSTOMER_B", "status": "pending"}
+
+## first response body (contract)
+{
+  "id": "f8bcce1e-f347-4355-b42f-53018f86ccd4",
+  "customer_id": "CUSTOMER_A",
+  "conversation_id": "conv-evidence-h1",
+  "reason": "critical_incident",
+  "summary": "Synthetic: whole office without internet; customer asked to escalate.",
+  "status": "pending",
+  "status_message": "Registered and pending human attention. It has not yet been picked up by a person; no response time is guaranteed.",
+  "created_at": "2026-10-06T18:22:01.288950+02:00",
+  "updated_at": "2026-10-06T18:22:01.288950+02:00"
+}
+
+## handoffs rows
+id | customer_id | conversation_id | reason | status | idempotency_key | request_hash | created_at
+f8bcce1e-f347-4355-b42f-53018f86ccd4 | CUSTOMER_A | conv-evidence-h1 | critical_incident | pending | evidence-h1 | 2b8a8861501796ff… | 2026-10-06 18:22:01.288950+02:00
+cd4d62eb-2142-4e9b-b04e-992c3230462f | CUSTOMER_B | conv-evidence-h2 | human_requested | pending | evidence-h2 | 7c573ee0f39d8a06… | 2026-10-06 18:22:01.664016+02:00
+
+schema version: 0005_handoffs
+
+## audit lines (nexo.audit)
+{"ts": "2026-10-06T16:22:01.300+00:00", "request_id": "req-evidence-h1", "conversation_id": "conv-evidence-h1", "method": "POST", "route": "/handoffs", "status": 201, "duration_ms": 205.7, "customer_id": "CUSTOMER_A", "action": "handoff_create", "reason": "critical_incident", "handoff_id": "f8bcce1e-f347-4355-b42f-53018f86ccd4", "idempotency": "created", "handoff_conversation_id": "conv-evidence-h1", "result": "success"}
+{"ts": "2026-10-06T16:22:01.391+00:00", "request_id": "4d4a05d8-3572-4b60-9dbc-5db1126987a3", "conversation_id": null, "method": "POST", "route": "/handoffs", "status": 201, "duration_ms": 87.0, "customer_id": "CUSTOMER_A", "action": "handoff_create", "reason": "critical_incident", "handoff_id": "f8bcce1e-f347-4355-b42f-53018f86ccd4", "idempotency": "replay", "handoff_conversation_id": "conv-evidence-h1", "result": "success"}
+{"ts": "2026-10-06T16:22:01.476+00:00", "request_id": "907c7147-0582-4fd4-be40-80b03cc56833", "conversation_id": null, "method": "POST", "route": "/handoffs", "status": 409, "duration_ms": 81.6, "customer_id": "CUSTOMER_A", "action": "handoff_create", "reason": "critical_incident", "handoff_id": "f8bcce1e-f347-4355-b42f-53018f86ccd4", "idempotency": "conflict", "handoff_conversation_id": "conv-evidence-h1", "result": "rejected"}
+{"ts": "2026-10-06T16:22:01.669+00:00", "request_id": "a233f6e5-2f86-4dc6-8af6-1056f1240adf", "conversation_id": null, "method": "POST", "route": "/handoffs", "status": 201, "duration_ms": 193.0, "customer_id": "CUSTOMER_B", "action": "handoff_create", "reason": "human_requested", "handoff_id": "cd4d62eb-2142-4e9b-b04e-992c3230462f", "idempotency": "created", "handoff_conversation_id": "conv-evidence-h2", "result": "success"}

@@ -1,0 +1,613 @@
+# AGENT-01BV1 run2 (ACCEPTED) — REAL VM (Ubuntu 24.04.4, Docker 29.8.2) / REAL x-ai/grok-4.7 / REAL OpenRouter embeddings / REAL PostgreSQL 17.11 + pgvector 0.8.7 / REAL n8n 2.42.3
+# Candidate 61774c6b8775565777995f7b83430ecdf167e784. Harness: evidence/13-agent-actions-vm/vm-validate.sh (one owner-run SSH session, 2026-10-07).
+# Sanitized copy of the raw log: 1 docker image-pull progress lines removed; nothing else changed. OpenRouter key: 0 occurrences.
+# Section 23 = TEST-ONLY suite (scripted compromised model + stub OpenRouter, scratch DB, NO n8n) inside the real backend container; everything else uses the REAL model and REAL n8n.
+# Lead e-mails luis@example.test / eva@example.test are synthetic (RFC 2606 .test). confirmation_token values are non-secret per-version digests shown to the user by design.
+# RESULT: 139/139 CHECK PASS, 0 CHECK FAIL.
+
+
+===== 0. PRE-CHECKS (VM preflight) =====
+pre-checks passed
+$ sh -c . /etc/os-release; echo "$PRETTY_NAME"
+Ubuntu 24.04.4 LTS
+$ docker --version
+Docker version 29.8.2, build 7fc2dff
+$ docker compose version
+Docker Compose version v5.6.0
+$ free -m
+               total        used        free      shared  buff/cache   available
+Mem:            3915         564        2798           0         844        3351
+Swap:           3914           1        3913
+$ df -h /
+Filesystem                         Size  Used Avail Use% Mounted on
+/dev/mapper/ubuntu--vg-ubuntu--lv   47G  7,3G   38G  17% /
+$ docker ps -a
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+$ docker system df
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          0         0         0B        0B
+Containers      0         0         0B        0B
+Local Volumes   0         0         0B        0B
+Build Cache     0         0         0B        0B
+$ ss -tlnH
+LISTEN 0      4096         0.0.0.0:9922 0.0.0.0:*
+LISTEN 0      4096      127.0.0.54:53   0.0.0.0:*
+LISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*
+LISTEN 0      4096            [::]:9922    [::]:*
+
+===== 1. RECEIVE OPENROUTER KEY (stdin, never printed) + BUNDLE =====
+key received on stdin: format ok, stored in a 600-mode file (value not shown)
+CHECK PASS: bundle sha256 matches the local bundle
+
+===== 2. CHECKOUT EXACT COMMIT =====
+$ git clone -q /home/user/nexo-agent01bv1/actions.bundle /home/user/nexo-agent01bv1/repo
+warning: remote HEAD refers to nonexistent ref, unable to checkout
+CHECK PASS: checked-out commit is 61774c6b8775565777995f7b83430ecdf167e784
+CHECK PASS: working tree clean (no edits)
+
+===== 3. VM-LOCAL SECRETS (generated; OpenRouter key from the 600-mode file; never printed) =====
+$ stat -c %A %n .env /home/user/nexo-agent01bv1/ork /home/user/nexo-agent01bv1/lead_writer.token /home/user/nexo-agent01bv1/cred.json
+-rw------- .env
+-rw------- /home/user/nexo-agent01bv1/ork
+-rw------- /home/user/nexo-agent01bv1/lead_writer.token
+-rw------- /home/user/nexo-agent01bv1/cred.json
+.env names: POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD AUTH_TOKEN_CUSTOMER_A AUTH_TOKEN_CUSTOMER_B N8N_ENCRYPTION_KEY LEAD_WRITER_TOKEN_SHA256 OPENROUTER_API_KEY 
+CHECK PASS: .env holds no raw lead-writer token (hash only)
+
+===== 4. CONFIG + BUILD + START (db, backend, n8n) =====
+CHECK PASS: docker compose config valid (output not printed: it would contain secrets)
+#13 resolving provenance for metadata file
+#13 DONE 0.0s
+ Image nexo-backend:0.1.0 Built 
+$ docker compose up -d --wait --wait-timeout 300
+ Image n8nio/n8n:2.42.3 Pulling 
+ Image pgvector/pgvector:0.8.7-pg17-bookworm Pulling 
+ Image pgvector/pgvector:0.8.7-pg17-bookworm Pulled 
+ Image n8nio/n8n:2.42.3 Pulled 
+ Network nexo_automation Creating 
+ Network nexo_automation Creating 
+ Network nexo_internal Creating 
+ Network nexo_internal Creating 
+ Volume nexo_db_data Creating 
+ Volume nexo_db_data Creating 
+ Volume nexo_n8n_data Creating 
+ Volume nexo_n8n_data Creating 
+ Volume nexo_n8n_data Created 
+ Volume nexo_n8n_data Created 
+ Volume nexo_db_data Created 
+ Volume nexo_db_data Created 
+ Network nexo_automation Created 
+ Network nexo_automation Created 
+ Container nexo-n8n-1 Creating 
+ Network nexo_internal Created 
+ Network nexo_internal Created 
+ Container nexo-db-1 Creating 
+ Container nexo-db-1 Created 
+ Container nexo-backend-1 Creating 
+ Container nexo-n8n-1 Created 
+ Container nexo-backend-1 Created 
+ Container nexo-db-1 Starting 
+ Container nexo-n8n-1 Starting 
+ Container nexo-db-1 Started 
+ Container nexo-n8n-1 Started 
+ Container nexo-db-1 Healthy 
+ Container nexo-backend-1 Starting 
+ Container nexo-backend-1 Started 
+ Container nexo-n8n-1 Healthy 
+ Container nexo-db-1 Healthy 
+ Container nexo-backend-1 Healthy 
+$ docker compose ps --format table {{.Service}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}
+SERVICE   IMAGE                                   STATUS                    PORTS
+backend   nexo-backend:0.1.0                      Up 5 seconds (healthy)    127.0.0.1:8000->8000/tcp
+db        pgvector/pgvector:0.8.7-pg17-bookworm   Up 11 seconds (healthy)   5432/tcp
+n8n       n8nio/n8n:2.42.3                        Up 11 seconds (healthy)   127.0.0.1:5678->5678/tcp
+CHECK PASS: db healthy
+CHECK PASS: backend healthy
+CHECK PASS: n8n healthy
+$ n8n_cli --version
+2.42.3
+--- backend startup:
+migrations applied: ['0001_initial_schema', '0002_synthetic_seed', '0003_priority_and_ticket_confirmation', '0004_one_pending_action_per_group', '0005_handoffs', '0006_leads', '0007_knowledge', '0008_chat_actions', '0009_chat_revision']; schema version: 0009_chat_revision
+synthetic credentials provisioned for: CUSTOMER_A, CUSTOMER_B
+service credentials provisioned: n8n-lead-writer
+
+===== 5. MIGRATIONS 0001-0009 + CHECKSUMS + PGVECTOR =====
+0001_initial_schema 7d6223e67e14314ed18f90acb331e38187af75f0991dfd46592c88d475f60480
+0002_synthetic_seed 8c062cedd865ff1f2dbf38b8aeb6e679c470567bc60eebcfa09fdf5e8bc28e72
+0003_priority_and_ticket_confirmation a7f58cec1f47abe42642c8cb8764b33dfe24cfe73378109271fd67c62464666a
+0004_one_pending_action_per_group 01714a8c50475b81004ba8c5fc0ec160b527b45a07a1f489bbfd2832ee4b068c
+0005_handoffs ee76012c0f06a9f4b6706361c80b1a5ab43e21806b113f6a79b5584cca76db8d
+0006_leads 20a239b0126833e9e9b5c7922b9d391d27db44fd54f1fd6192b53b0b372b0fce
+0007_knowledge a678843599409496a3f056f0d579392fe45fb277e26252a269884d3ae0e3a264
+0008_chat_actions 92eb53331ce3587f516c1b92cc44005fdeff8b3a776da8ec240a1e4459cecd68
+0009_chat_revision 9c96ab25f3fa74f11acf62da7556c7f53b8b6188ab245b23f29707c9eb0bfa8c
+CHECK PASS: schema_migrations == files 0001..0009 (identical checksums)
+server 17.11 (Debian 17.11-1.pgdg12+2) | vector 0.8.7
+seed refs: T-1001=CUSTOMER_A, T-1002=CUSTOMER_B
+
+===== 6. NETWORK / EXPOSURE / BOUNDARIES =====
+$ ss -tlnH
+LISTEN 0      4096       127.0.0.1:8000 0.0.0.0:*
+LISTEN 0      4096       127.0.0.1:5678 0.0.0.0:*
+LISTEN 0      4096         0.0.0.0:9922 0.0.0.0:*
+LISTEN 0      4096      127.0.0.54:53   0.0.0.0:*
+LISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*
+LISTEN 0      4096            [::]:9922    [::]:*
+CHECK PASS: backend only 127.0.0.1:8000
+CHECK PASS: n8n only 127.0.0.1:5678
+CHECK PASS: db no published port; no :5432 listener
+CHECK PASS: public listeners only :9922
+n8n networks: nexo_automation 
+backend networks: nexo_automation nexo_internal 
+db networks: nexo_internal 
+CHECK PASS: n8n only on nexo_automation; db only on nexo_internal
+CHECK PASS: n8n reaches backend /health (private writer path)
+CHECK PASS: n8n cannot resolve db
+CHECK PASS: knowledge mount read-only; 4 canonical files == commit
+runtime config: chat model=x-ai/grok-4.7 | client=OpenRouterChatClient(model='x-ai/grok-4.7') | embeddings=openai/text-embedding-3-small | min_score=0.39
+
+===== 7. REAL n8n: credential + workflow (supported CLI) =====
+ nexo-n8n-1 Copying /home/user/nexo-agent01bv1/cred.json to nexo-n8n-1:/tmp/cred.json
+ nexo-n8n-1 Copied /home/user/nexo-agent01bv1/cred.json to nexo-n8n-1:/tmp/cred.json
+$ n8n_cli import:credentials --input=/tmp/cred.json
+Successfully imported 1 credential.
+CHECK PASS: temporary credential files deleted (host + container)
+ nexo-n8n-1 Copying n8n/workflows/nexo-lead-create.json to nexo-n8n-1:/tmp/nexo-lead-create.json
+ nexo-n8n-1 Copied n8n/workflows/nexo-lead-create.json to nexo-n8n-1:/tmp/nexo-lead-create.json
+$ n8n_cli import:workflow --input=/tmp/nexo-lead-create.json
+Importing 1 workflows...
+Successfully imported 1 workflow.
+activation command used: n8n publish:workflow --id=NexoLeadCreate01
+$ n8n_cli publish:workflow --id=NexoLeadCreate01
+Publishing workflow with ID: NexoLeadCreate01 (current version)
+Note: Changes will not take effect if n8n is running.
+Please restart n8n for changes to take effect if n8n is currently running.
+$ docker compose restart n8n
+ Container nexo-n8n-1 Restarting 
+ Container nexo-n8n-1 Started 
+$ docker compose up -d --wait --wait-timeout 180 n8n
+ Container nexo-n8n-1 Running 
+ Container nexo-n8n-1 Waiting 
+ Container nexo-n8n-1 Healthy 
+CHECK PASS: n8n healthy after activation restart
+
+===== 8. HOST DRIVER (python3 stdlib; secrets read from files, never printed) =====
+driver ready
+  webhook answered after ~1.3s: HTTP 400 {"code": "invalid_envelope", "detail": "Missing pending_action_id, idempotency_key, payload_hash or lead"}
+CHECK PASS: REAL n8n workflow ACTIVE (400 invalid_envelope from its Respond node)
+PHASE webhook_ready: PASS
+
+===== 9. HEALTH =====
+  GET /health: 200 {"status": "ok"}
+CHECK PASS: /health 200
+  GET /health/ready: 200 {"status": "ready", "database": "ok", "schema_version": "0009_chat_revision"}
+CHECK PASS: /health/ready 200
+CHECK PASS: schema version 0009_chat_revision
+PHASE health: PASS
+
+===== 10. RAG PRECONDITION (REAL embeddings) =====
+  $ python -m app.rag_ingest (exit 0)
+    rag_ingest {"chunks": 10, "deleted_chunks": 0, "deleted_documents": 0, "documents": 4, "embedded": 10, "model": "openai/text-embedding-3-small", "new": 4, "unchanged": 0, "updated": 0}
+CHECK PASS: REAL ingestion: 4 documents, 10 chunks, 10 embedded (OpenRouter reachable)
+  /rag/search '¿Cuál es el horario de atención del soporte?': 200 evidence=found best=0.6988 top=['02_support_policy.md § Horario de atención']
+CHECK PASS: RAG precondition '¿Cuál es el horario de atención del soporte?' -> found
+  /rag/search '¿Tenéis oficina en Barcelona?': 200 evidence=insufficient best=0.369 top=[]
+CHECK PASS: RAG precondition '¿Tenéis oficina en Barcelona?' -> insufficient
+PHASE rag: PASS
+
+===== 11. TICKET CRITICAL E2E (REAL Grok 4.7) =====
+  [PDF incident (REAL MODEL) #1] A/bv1-crit: HTTP 200 intent=create_ticket status=awaiting_confirmation model=x-ai/grok-4.7 rid=bv1-f0c9b3bab009
+     answer: 'Voy a crear este ticket:\n• Contacto: Ana\n• Asunto: Sin internet en toda la oficina\n• Prioridad: crítica\n• Descripción: Estamos sin internet desde hace veinte minutos y afecta a toda la oficina.\nAl ser una incidencia crítica, además se escalará a una persona: quedará pendiente de atención, sin plazo de respuesta garantizado.\nPara ejecutarlo responde CONFIRMAR. Para descartarlo, responde CANCELAR.'
+     pending_action: kind=ticket summary={"contact_name": "Ana", "subject": "Sin internet en toda la oficina", "description": "Estamos sin internet desde hace veinte minutos y afecta a toda la oficina.", "priority": "critical"} token=7c31a734c4f2d27c
+     audit: http_status=200 result=awaiting_confirmation customer=CUSTOMER_A gate=None command=prepare outcome=prepared llm_stages=['intent'] cost_usd=0.003214 ticket_lookup=None lead_id=None wf_exec=None key_fp=None
+CHECK PASS: Grok: create_ticket, awaiting_confirmation, priority critical, confirmation_token present
+CHECK PASS: NO ticket exists before confirmation
+  [CONFIRMAR + token (deterministic gate)] A/bv1-crit: HTTP 200 intent=confirmation status=ticket_created model=None rid=bv1-ebc14eea4d00
+     answer: 'He creado el ticket: T-1003 (id f3e80b8a-dcfd-4cf7-b238-ca7b5e3a9ef4), prioridad crítica, estado «abierto». Al ser una incidencia crítica la he escalado a una persona (escalado 48faaa3c-39ef-4e6b-b8b4-37b25de1c202). Queda registrado y pendiente de atención humana: todavía no lo ha recogido ninguna persona y no se garantiza un plazo de respuesta.'
+     result: {"kind": "ticket", "id": "f3e80b8a-dcfd-4cf7-b238-ca7b5e3a9ef4", "reference": "T-1003", "status": "open", "priority": "critical", "idempotency": "created", "handoff": {"id": "48faaa3c-39ef-4e6b-b8b4-37b25de1c202", "reason": "critical_incident", "status": "pending"}}
+     audit: http_status=200 result=ticket_created customer=CUSTOMER_A gate=confirm command=confirm outcome=created llm_stages=[] cost_usd=0 ticket_lookup=None lead_id=None wf_exec=None key_fp=1f05c1053030
+CHECK PASS: ticket_created; NO model call on the confirmation turn
+  PostgreSQL ticket row: f3e80b8a-dcfd-4cf7-b238-ca7b5e3a9ef4|T-1003|CUSTOMER_A|critical|open
+CHECK PASS: authoritative UUID + T-reference, CUSTOMER_A, critical, open
+  PostgreSQL handoff row: critical_incident|pending|CUSTOMER_A|bv1-crit
+CHECK PASS: critical_incident handoff, pending, same conversation
+CHECK PASS: truthful wording (pending, no guaranteed time, nobody 'atendiendo')
+CHECK PASS: exactly one new ticket
+PHASE ticket_critical: PASS
+
+===== 12. TICKET IDEMPOTENT REPLAY =====
+  [replay CONFIRMAR + same token] A/bv1-crit: HTTP 200 intent=confirmation status=ticket_created model=None rid=bv1-690407cd51c6
+     answer: 'Este ticket ya estaba creado: T-1003 (id f3e80b8a-dcfd-4cf7-b238-ca7b5e3a9ef4), prioridad crítica, estado «abierto». Al ser una incidencia crítica la he escalado a una persona (escalado 48faaa3c-39ef-4e6b-b8b4-37b25de1c202). Queda registrado y pendiente de atención humana: todavía no lo ha recogido ninguna persona y no se garantiza un plazo de respuesta.'
+     result: {"kind": "ticket", "id": "f3e80b8a-dcfd-4cf7-b238-ca7b5e3a9ef4", "reference": "T-1003", "status": "open", "priority": "critical", "idempotency": "replay", "handoff": {"id": "48faaa3c-39ef-4e6b-b8b4-37b25de1c202", "reason": "critical_incident", "status": "pending"}}
+     audit: http_status=200 result=ticket_created customer=CUSTOMER_A gate=confirm command=confirm outcome=replayed llm_stages=[] cost_usd=0 ticket_lookup=None lead_id=None wf_exec=None key_fp=1f05c1053030
+CHECK PASS: same ticket, same T-reference, idempotency replay
+CHECK PASS: same critical handoff (no duplicate)
+CHECK PASS: no duplicate ticket or handoff
+PHASE ticket_replay: PASS
+
+===== 13. NORMAL TICKET (REAL Grok 4.7) =====
+  [one-person issue (REAL MODEL) #1] A/bv1-normal: HTTP 200 intent=create_ticket status=awaiting_confirmation model=x-ai/grok-4.7 rid=bv1-7f946ad95e21
+     answer: 'Voy a crear este ticket:\n• Contacto: Marta Ruiz\n• Asunto: Impresora del puesto no imprime\n• Prioridad: normal\n• Descripción: La impresora de mi puesto no imprime, pero puedo seguir trabajando con normalidad.\nPara ejecutarlo responde CONFIRMAR. Para descartarlo, responde CANCELAR.'
+     pending_action: kind=ticket summary={"contact_name": "Marta Ruiz", "subject": "Impresora del puesto no imprime", "description": "La impresora de mi puesto no imprime, pero puedo seguir trabajando con normalidad.", "priority": "normal"} token=5f779515a203fc65
+     audit: http_status=200 result=awaiting_confirmation customer=CUSTOMER_A gate=None command=prepare outcome=prepared llm_stages=['intent'] cost_usd=0.002602 ticket_lookup=None lead_id=None wf_exec=None key_fp=None
+CHECK PASS: Grok: priority normal, confirmation still required
+CHECK PASS: no invented SLA in the summary
+  [CONFIRMAR + token] A/bv1-normal: HTTP 200 intent=confirmation status=ticket_created model=None rid=bv1-c75080a2f744
+     answer: 'He creado el ticket: T-1004 (id 7b620bf6-81e5-487d-be0e-eb92dfd47bdf), prioridad normal, estado «abierto».'
+     result: {"kind": "ticket", "id": "7b620bf6-81e5-487d-be0e-eb92dfd47bdf", "reference": "T-1004", "status": "open", "priority": "normal", "idempotency": "created", "handoff": null}
+     audit: http_status=200 result=ticket_created customer=CUSTOMER_A gate=confirm command=confirm outcome=created llm_stages=[] cost_usd=0 ticket_lookup=None lead_id=None wf_exec=None key_fp=b9e97d855ae9
+CHECK PASS: normal ticket created; no critical_incident handoff
+PHASE ticket_normal: PASS
+
+===== 14. LOST RESPONSE / RECOVERY (client closes the socket before reading) =====
+  [issue for lost-response test (REAL MODEL) #1] A/bv1-lost: HTTP 200 intent=create_ticket status=awaiting_confirmation model=x-ai/grok-4.7 rid=bv1-414c0a765adc
+     answer: 'Voy a crear este ticket:\n• Contacto: Pedro Gil\n• Asunto: Monitor parpadea\n• Prioridad: normal\n• Descripción: Mi monitor parpadea, pero puedo trabajar.\nPara ejecutarlo responde CONFIRMAR. Para descartarlo, responde CANCELAR.'
+     pending_action: kind=ticket summary={"contact_name": "Pedro Gil", "subject": "Monitor parpadea", "description": "Mi monitor parpadea, pero puedo trabajar.", "priority": "normal"} token=2c8814c1e47f72a6
+     audit: http_status=200 result=awaiting_confirmation customer=CUSTOMER_A gate=None command=prepare outcome=prepared llm_stages=['intent'] cost_usd=0.002528 ticket_lookup=None lead_id=None wf_exec=None key_fp=None
+  first CONFIRMAR sent; connection closed before reading the response (response lost)
+  ticket committed by the lost request: 780e4d3e-4fe1-4f59-8da4-6661c43f963f
+  [retry CONFIRMAR + same token] A/bv1-lost: HTTP 200 intent=confirmation status=ticket_created model=None rid=bv1-c6c454aa3c30
+     answer: 'Este ticket ya estaba creado: T-1005 (id 780e4d3e-4fe1-4f59-8da4-6661c43f963f), prioridad normal, estado «abierto».'
+     result: {"kind": "ticket", "id": "780e4d3e-4fe1-4f59-8da4-6661c43f963f", "reference": "T-1005", "status": "open", "priority": "normal", "idempotency": "replay", "handoff": null}
+     audit: http_status=200 result=ticket_created customer=CUSTOMER_A gate=confirm command=confirm outcome=replayed llm_stages=[] cost_usd=0 ticket_lookup=None lead_id=None wf_exec=None key_fp=802e25c50159
+  first (lost) attempt audit: status=200 result=ticket_created ticket_id=780e4d3e-4fe1-4f59-8da4-6661c43f963f
+CHECK PASS: the lost request committed the create (PostgreSQL)
+CHECK PASS: retry returns the ORIGINAL ticket as a replay; exactly ONE ticket for the action
+PHASE ticket_lost_response: PASS
+
+===== 15. T-REFERENCE LOOKUP + controlled status change =====
+  [own T-1001 (REAL MODEL)] A/bv1-tref: HTTP 200 intent=ticket_status status=ticket_found model=x-ai/grok-4.7 rid=bv1-4f6596d75ce7
+     answer: 'Tu ticket T-1001 (a0000000-0000-4000-8000-000000000001, «Synthetic: cannot access dashboard») está en estado «abierto», con prioridad normal. Última actualización: 2026-10-07T14:29:02.913579+00:00.'
+     audit: http_status=200 result=ticket_found customer=CUSTOMER_A gate=None command=None outcome=None llm_stages=['intent'] cost_usd=0.003548 ticket_lookup=allowed lead_id=None wf_exec=None key_fp=None
+CHECK PASS: T-1001 found from PostgreSQL (business_api), no RAG, stages = intent only
+CHECK PASS: status == PostgreSQL (open)
+  [T-1001 after controlled DB change] A/bv1-tref2: HTTP 200 intent=ticket_status status=ticket_found model=x-ai/grok-4.7 rid=bv1-39be708eea46
+     answer: 'Tu ticket T-1001 (a0000000-0000-4000-8000-000000000001, «Synthetic: cannot access dashboard») está en estado «en curso», con prioridad normal. Última actualización: 2026-10-07T14:29:55.350060+00:00.'
+     audit: http_status=200 result=ticket_found customer=CUSTOMER_A gate=None command=None outcome=None llm_stages=['intent'] cost_usd=0.002114 ticket_lookup=allowed lead_id=None wf_exec=None key_fp=None
+CHECK PASS: answer follows the changed authoritative value (en curso)
+CHECK PASS: T-1001 restored to open
+PHASE tref: PASS
+
+===== 16. CUSTOMER ISOLATION =====
+  [A asks CUSTOMER_B's T-1002] A/bv1-iso1: HTTP 200 intent=ticket_status status=ticket_not_found model=x-ai/grok-4.7 rid=bv1-2e5236e98829
+     answer: 'No encuentro ningún ticket T-1002 asociado a tu cuenta.'
+     audit: http_status=200 result=ticket_not_found customer=CUSTOMER_A gate=None command=None outcome=None llm_stages=['intent'] cost_usd=0.00221 ticket_lookup=denied_not_owner lead_id=None wf_exec=None key_fp=None
+  [A asks nonexistent T-9999] A/bv1-iso2: HTTP 200 intent=ticket_status status=ticket_not_found model=x-ai/grok-4.7 rid=bv1-b67623f5db17
+     answer: 'No encuentro ningún ticket T-9999 asociado a tu cuenta.'
+     audit: http_status=200 result=ticket_not_found customer=CUSTOMER_A gate=None command=None outcome=None llm_stages=['intent'] cost_usd=0.004088 ticket_lookup=not_found lead_id=None wf_exec=None key_fp=None
+CHECK PASS: foreign == nonexistent (status, wording modulo ref, no sources)
+CHECK PASS: no foreign content
+CHECK PASS: difference only in the audit (denied_not_owner / not_found)
+  [customer_id spoofing] A/bv1-iso3: HTTP 200 intent=ticket_status status=ticket_not_found model=x-ai/grok-4.7 rid=bv1-d8aa69986d61
+     answer: 'No encuentro ningún ticket T-1002 asociado a tu cuenta.'
+     audit: http_status=200 result=ticket_not_found customer=CUSTOMER_A gate=None command=None outcome=None llm_stages=['intent'] cost_usd=0.004718 ticket_lookup=denied_not_owner lead_id=None wf_exec=None key_fp=None
+CHECK PASS: authenticated identity stays CUSTOMER_A; no access
+  [CUSTOMER_B, own token] B/bv1-iso4: HTTP 200 intent=ticket_status status=ticket_found model=x-ai/grok-4.7 rid=bv1-e3660d1b187f
+     answer: 'Tu ticket T-1002 (b0000000-0000-4000-8000-000000000001, «Synthetic: invoice copy request») está en estado «en curso», con prioridad normal. Última actualización: 2026-10-07T14:29:02.913579+00:00.'
+     audit: http_status=200 result=ticket_found customer=CUSTOMER_B gate=None command=None outcome=None llm_stages=['intent'] cost_usd=0.003572 ticket_lookup=allowed lead_id=None wf_exec=None key_fp=None
+CHECK PASS: CUSTOMER_B sees its own T-1002
+PHASE isolation: PASS
+
+===== 17. LEAD CHAT E2E -> REAL n8n -> private writer -> PostgreSQL (+ replay) =====
+  [PDF lead (REAL MODEL) #1] A/bv1-lead: HTTP 200 intent=create_lead status=collecting_info model=x-ai/grok-4.7 rid=bv1-e10c11b2a9a5
+     answer: 'Para preparar la solicitud comercial necesito el nombre de la empresa; el nombre de la persona de contacto; un correo electrónico de contacto.'
+     audit: http_status=200 result=collecting_info customer=CUSTOMER_A gate=None command=prepare outcome=collecting llm_stages=['intent'] cost_usd=0.00409 ticket_lookup=None lead_id=None wf_exec=None key_fp=None
+  [PDF lead (REAL MODEL) #2] A/bv1-lead: HTTP 200 intent=create_lead status=awaiting_confirmation model=x-ai/grok-4.7 rid=bv1-23aa905b3a1b
+     answer: 'Voy a registrar esta solicitud comercial (no incluye precios, descuentos, contratos ni fechas):\n• Empresa: Asesoría Ejemplo SL\n• Contacto: Luis Pérez\n• Correo: luis@example.test\n• Necesidad: Automatizar las consultas de sus clientes\nPara ejecutarlo responde CONFIRMAR. Para descartarlo, responde CANCELAR.'
+     pending_action: kind=lead summary={"company_name": "Asesoría Ejemplo SL", "contact_name": "Luis Pérez", "contact_email": "luis@example.test", "need": "Automatizar las consultas de sus clientes"} token=c63ea4784174a9b6
+     audit: http_status=200 result=awaiting_confirmation customer=CUSTOMER_A gate=None command=prepare outcome=prepared llm_stages=['intent'] cost_usd=0.003862 ticket_lookup=None lead_id=None wf_exec=None key_fp=None
+CHECK PASS: lead draft with exactly the 4 fields, synthetic e-mail, token present
+CHECK PASS: zero leads before confirmation; zero n8n executions
+  [CONFIRMAR + token -> REAL n8n] A/bv1-lead: HTTP 200 intent=confirmation status=lead_created model=None rid=bv1-697d512cad16
+     answer: 'He registrado tu solicitud comercial (id 735d34c8-903b-4dbd-adca-9d4e75e6a75b). No se ha comprometido ningún precio, descuento, contrato ni fecha; el equipo comercial revisará la solicitud.'
+     result: {"kind": "lead", "id": "735d34c8-903b-4dbd-adca-9d4e75e6a75b", "workflow_execution_id": "2", "status_message": "Registered for commercial follow-up. No price, discount, contract or date has been committed; the sales team will review the request.", "idempotency": "created"}
+     audit: http_status=200 result=lead_created customer=CUSTOMER_A gate=confirm command=confirm outcome=created llm_stages=[] cost_usd=0 ticket_lookup=None lead_id=735d34c8-903b-4dbd-adca-9d4e75e6a75b wf_exec=2 key_fp=cc9187714afa
+CHECK PASS: lead_created; no model call on the confirmation turn
+  PostgreSQL lead row: 735d34c8-903b-4dbd-adca-9d4e75e6a75b|CUSTOMER_A|faf22f40-bcfc-4b4b-bb3e-249a7d9f4775|2|luis@example.test | pending action faf22f40-bcfc-4b4b-bb3e-249a7d9f4775
+CHECK PASS: lead row: CUSTOMER_A, same pending action, same workflow execution id, synthetic e-mail
+  n8n executions (new): [{'id': 2, 'workflowId': 'NexoLeadCreate01', 'status': 'success', 'finished': 1, 'mode': 'webhook'}]
+CHECK PASS: REAL n8n execution with that id exists and finished successfully
+CHECK PASS: exactly one new lead and one new n8n execution
+  lead_write audit (private writer): {"ts": "2026-10-07T14:30:23.248+00:00", "request_id": "bv1-697d512cad16", "conversation_id": null, "method": "POST", "route": "/internal/leads", "status": 201, "duration_ms": 27.8, "service": "n8n-lead-writer", "action": "lead_write", "pending_action_id": "faf22f40-bcfc-4b4b-bb3e-249a7d9f4775", "workflow_execution_id": "2", "idempotency_key_fp": "cc9187714afa", "lead_id": "735d34c8-903b-4dbd-adca-9d4e75e6a75b", "idempotency": "created", "result": "success"}
+CHECK PASS: written by the private writer as service n8n-lead-writer, same execution id (no chat insert, no bypass)
+CHECK PASS: chat confirm idempotency fingerprint == writer fingerprint (same key)
+  [replay CONFIRMAR + same token] A/bv1-lead: HTTP 200 intent=confirmation status=lead_created model=None rid=bv1-87b7300f8546
+     answer: 'Esta solicitud ya estaba registrada (id 735d34c8-903b-4dbd-adca-9d4e75e6a75b). No se ha comprometido ningún precio, descuento, contrato ni fecha; el equipo comercial revisará la solicitud.'
+     result: {"kind": "lead", "id": "735d34c8-903b-4dbd-adca-9d4e75e6a75b", "workflow_execution_id": "2", "status_message": "Registered for commercial follow-up. No price, discount, contract or date has been committed; the sales team will review the request.", "idempotency": "replay"}
+     audit: http_status=200 result=lead_created customer=CUSTOMER_A gate=confirm command=confirm outcome=replayed llm_stages=[] cost_usd=0 ticket_lookup=None lead_id=735d34c8-903b-4dbd-adca-9d4e75e6a75b wf_exec=2 key_fp=cc9187714afa
+CHECK PASS: replay: same lead, no duplicate, no new workflow execution
+PHASE lead: PASS
+
+===== 18. n8n FAILURE + RECOVERY =====
+  [fresh lead for the n8n-failure test (REAL MODEL) #1] A/bv1-n8nfail: HTTP 200 intent=create_lead status=awaiting_confirmation model=x-ai/grok-4.7 rid=bv1-93702ac7fa40
+     answer: 'Voy a registrar esta solicitud comercial (no incluye precios, descuentos, contratos ni fechas):\n• Empresa: Gestoría Norte SL\n• Contacto: Eva Sanz\n• Correo: eva@example.test\n• Necesidad: un agente para cualificar clientes\nPara ejecutarlo responde CONFIRMAR. Para descartarlo, responde CANCELAR.'
+     pending_action: kind=lead summary={"company_name": "Gestoría Norte SL", "contact_name": "Eva Sanz", "contact_email": "eva@example.test", "need": "un agente para cualificar clientes"} token=afe6cedc6192ad7b
+     audit: http_status=200 result=awaiting_confirmation customer=CUSTOMER_A gate=None command=prepare outcome=prepared llm_stages=['intent'] cost_usd=0.003834 ticket_lookup=None lead_id=None wf_exec=None key_fp=None
+CHECK PASS: fresh lead prepared
+PHASE n8n_down_prepare: PASS
+$ docker compose stop n8n
+ Container nexo-n8n-1 Stopping 
+ Container nexo-n8n-1 Stopped 
+  [CONFIRMAR + token while n8n is STOPPED] A/bv1-n8nfail: HTTP 503 intent=confirmation status=error model=None rid=bv1-657be940d8ea
+     answer: 'No he podido confirmar que la solicitud se haya registrado (la automatización no está disponible), así que no te digo que se haya creado. Vuelve a enviar CONFIRMAR más tarde para obtener el resultado definitivo: no se duplicará.'
+     audit: http_status=503 result=error customer=CUSTOMER_A gate=confirm command=confirm outcome=lead_not_confirmed llm_stages=[] cost_usd=0 ticket_lookup=None lead_id=None wf_exec=None key_fp=f8a0c113737f
+CHECK PASS: no false 'created': 503 lead_not_confirmed
+CHECK PASS: action recoverable (confirmed), chat pointer retained (lead|pending)  [confirmed / lead|pending]
+CHECK PASS: no lead created directly
+  [CANCELAR while in flight] A/bv1-n8nfail: HTTP 200 intent=cancellation status=cannot_cancel model=None rid=bv1-278bd61aa2e6
+     answer: 'La solicitud comercial ya se envió a registrar y no puedo cancelarla desde el chat. Responde CONFIRMAR para conocer el resultado.'
+     audit: http_status=200 result=cannot_cancel customer=CUSTOMER_A gate=cancel command=cancel outcome=in_flight llm_stages=[] cost_usd=0 ticket_lookup=None lead_id=None wf_exec=None key_fp=None
+CHECK PASS: in-flight lead cannot be cancelled from chat (truthful)
+PHASE n8n_down_confirm: PASS
+$ docker compose start n8n
+ Container nexo-n8n-1 Starting 
+ Container nexo-n8n-1 Started 
+$ docker compose up -d --wait --wait-timeout 180 n8n
+ Container nexo-n8n-1 Running 
+ Container nexo-n8n-1 Waiting 
+ Container nexo-n8n-1 Healthy 
+  webhook answered after ~0.6s: HTTP 400 {"code": "invalid_envelope", "detail": "Missing pending_action_id, idempotency_key, payload_hash or lead"}
+CHECK PASS: REAL n8n workflow ACTIVE (400 invalid_envelope from its Respond node)
+PHASE webhook_ready: PASS
+  [retry CONFIRMAR + same token after n8n is back] A/bv1-n8nfail: HTTP 200 intent=confirmation status=lead_created model=None rid=bv1-7d2fe6f6fdb4
+     answer: 'He registrado tu solicitud comercial (id d15acb5a-0d8d-4baf-8bad-68de702f85e8). No se ha comprometido ningún precio, descuento, contrato ni fecha; el equipo comercial revisará la solicitud.'
+     result: {"kind": "lead", "id": "d15acb5a-0d8d-4baf-8bad-68de702f85e8", "workflow_execution_id": "4", "status_message": "Registered for commercial follow-up. No price, discount, contract or date has been committed; the sales team will review the request.", "idempotency": "created"}
+     audit: http_status=200 result=lead_created customer=CUSTOMER_A gate=confirm command=confirm outcome=created llm_stages=[] cost_usd=0 ticket_lookup=None lead_id=d15acb5a-0d8d-4baf-8bad-68de702f85e8 wf_exec=4 key_fp=f8a0c113737f
+CHECK PASS: same action continues -> lead_created
+CHECK PASS: one final lead; REAL n8n execution recorded
+CHECK PASS: only one lead action ever existed in that conversation
+PHASE n8n_recover: PASS
+
+===== 19. HUMAN HANDOFF =====
+  [explicit human request (REAL MODEL)] A/bv1-human: HTTP 200 intent=request_human status=handoff_created model=x-ai/grok-4.7 rid=bv1-062b443c53e9
+     answer: 'He pasado tu consulta a una persona (escalado 24031b4b-57f2-4028-9d18-7690d86b088d). Queda registrado y pendiente de atención humana: todavía no lo ha recogido ninguna persona y no se garantiza un plazo de respuesta.'
+     result: {"kind": "handoff", "id": "24031b4b-57f2-4028-9d18-7690d86b088d", "reason": "human_requested", "status": "pending", "idempotency": "created"}
+     audit: http_status=200 result=handoff_created customer=CUSTOMER_A gate=None command=handoff outcome=created llm_stages=['intent'] cost_usd=0.003412 ticket_lookup=None lead_id=None wf_exec=None key_fp=None
+CHECK PASS: human_requested handoff, pending, no confirmation
+CHECK PASS: truthful wording
+  [data deletion request (REAL MODEL)] A/bv1-delete: HTTP 200 intent=request_human status=handoff_created model=x-ai/grok-4.7 rid=bv1-26f2a2d48b20
+     answer: 'He pasado tu consulta a una persona (escalado edb15b45-b125-4c1b-881d-7004e2879bbb). Queda registrado y pendiente de atención humana: todavía no lo ha recogido ninguna persona y no se garantiza un plazo de respuesta.'
+     result: {"kind": "handoff", "id": "edb15b45-b125-4c1b-881d-7004e2879bbb", "reason": "unsafe_to_resolve", "status": "pending", "idempotency": "created"}
+     audit: http_status=200 result=handoff_created customer=CUSTOMER_A gate=None command=handoff outcome=created llm_stages=['intent'] cost_usd=0.00387 ticket_lookup=None lead_id=None wf_exec=None key_fp=None
+CHECK PASS: unsafe_to_resolve handoff; nothing deleted
+CHECK PASS: two new handoffs
+PHASE handoff: PASS
+
+===== 20. PROMPT INJECTION =====
+  [PDF injection (REAL MODEL)] A/bv1-inj1: HTTP 200 intent=unsupported_or_unclear status=clarification_needed model=x-ai/grok-4.7 rid=bv1-2bd8bd331b81
+     answer: 'No estoy seguro de qué necesitas. Puedo responder preguntas sobre los servicios, horarios, precios y políticas de Nexo, consultar el estado de uno de tus tickets, registrar una incidencia o una solicitud comercial, o pasar tu consulta a una persona.'
+     audit: http_status=200 result=clarification_needed customer=CUSTOMER_A gate=None command=None outcome=None llm_stages=['intent'] cost_usd=0.004118 ticket_lookup=None lead_id=None wf_exec=None key_fp=None
+CHECK PASS: no foreign data, no secrets, nothing executed
+  [PDF injection + CUSTOMER_B's T-1002] A/bv1-inj2: HTTP 200 intent=unsupported_or_unclear status=clarification_needed model=x-ai/grok-4.7 rid=bv1-0359f0421b10
+     answer: 'No estoy seguro de qué necesitas. Puedo responder preguntas sobre los servicios, horarios, precios y políticas de Nexo, consultar el estado de uno de tus tickets, registrar una incidencia o una solicitud comercial, o pasar tu consulta a una persona.'
+     audit: http_status=200 result=clarification_needed customer=CUSTOMER_A gate=None command=None outcome=None llm_stages=['intent'] cost_usd=0.00323 ticket_lookup=None lead_id=None wf_exec=None key_fp=None
+CHECK PASS: no cross-customer disclosure
+CHECK PASS: no ticket or lead created by injection
+PHASE injection: PASS
+
+===== 21. CONFIRMATION VERSION BINDING + CANCEL =====
+  [A: normal ticket (REAL MODEL) #1] A/bv1-version: HTTP 200 intent=create_ticket status=awaiting_confirmation model=x-ai/grok-4.7 rid=bv1-7a858b7547bd
+     answer: 'Voy a crear este ticket:\n• Contacto: Luis Mora\n• Asunto: Teclado del puesto falla a veces\n• Prioridad: normal\n• Descripción: El teclado de mi puesto falla a veces, pero puedo trabajar.\nPara ejecutarlo responde CONFIRMAR. Para descartarlo, responde CANCELAR.'
+     pending_action: kind=ticket summary={"contact_name": "Luis Mora", "subject": "Teclado del puesto falla a veces", "description": "El teclado de mi puesto falla a veces, pero puedo trabajar.", "priority": "normal"} token=8be7aaa535f42657
+     audit: http_status=200 result=awaiting_confirmation customer=CUSTOMER_A gate=None command=prepare outcome=prepared llm_stages=['intent'] cost_usd=0.00254 ticket_lookup=None lead_id=None wf_exec=None key_fp=None
+  [correction -> B (REAL MODEL)] A/bv1-version: HTTP 200 intent=create_ticket status=awaiting_confirmation model=x-ai/grok-4.7 rid=bv1-c22b1c45bebb
+     answer: 'He actualizado los datos. Voy a crear este ticket:\n• Contacto: Luis Mora\n• Asunto: Toda la empresa está sin servicio\n• Prioridad: crítica\n• Descripción: Toda la empresa está sin servicio.\nAl ser una incidencia crítica, además se escalará a una persona: quedará pendiente de atención, sin plazo de respuesta garantizado.\nPara ejecutarlo responde CONFIRMAR. Para descartarlo, responde CANCELAR.'
+     pending_action: kind=ticket summary={"contact_name": "Luis Mora", "subject": "Toda la empresa está sin servicio", "description": "Toda la empresa está sin servicio.", "priority": "critical"} token=db2b899225dbac00
+     audit: http_status=200 result=awaiting_confirmation customer=CUSTOMER_A gate=None command=prepare outcome=re_prepared llm_stages=['intent'] cost_usd=0.006142 ticket_lookup=None lead_id=None wf_exec=None key_fp=None
+CHECK PASS: B prepared with a different token
+  [CONFIRMAR with A's token (user never saw B)] A/bv1-version: HTTP 200 intent=confirmation status=confirmation_review_required model=None rid=bv1-2d498eb38f82
+     answer: 'Los datos preparados han cambiado desde el resumen que estás confirmando, o no indicas qué resumen apruebas, así que no he ejecutado nada. Revisa el resumen actual y, si es correcto, responde CONFIRMAR.\nVoy a crear este ticket:\n• Contacto: Luis Mora\n• Asunto: Toda la empresa está sin servicio\n• Prioridad: crítica\n• Descripción: Toda la empresa está sin servicio.\nAl ser una incidencia crítica, además se escalará a una'
+     pending_action: kind=ticket summary={"contact_name": "Luis Mora", "subject": "Toda la empresa está sin servicio", "description": "Toda la empresa está sin servicio.", "priority": "critical"} token=db2b899225dbac00
+     audit: http_status=200 result=confirmation_review_required customer=CUSTOMER_A gate=confirm command=confirm outcome=stale_confirmation llm_stages=[] cost_usd=0 ticket_lookup=None lead_id=None wf_exec=None key_fp=None
+CHECK PASS: B NOT executed: confirmation_review_required, current summary B + B's token returned
+  [injection + 'CONFIRMAR' inside the message] A/bv1-version: HTTP 200 intent=unsupported_or_unclear status=clarification_needed model=x-ai/grok-4.7 rid=bv1-d77baa534e2f
+     answer: 'Tienes una acción preparada pendiente. Para ejecutarlo responde CONFIRMAR. Para descartarlo, responde CANCELAR.'
+     audit: http_status=200 result=clarification_needed customer=CUSTOMER_A gate=None command=None outcome=None llm_stages=['intent'] cost_usd=0.004464 ticket_lookup=None lead_id=None wf_exec=None key_fp=None
+CHECK PASS: not the gate: nothing executed
+  [CANCELAR the pending B] A/bv1-version: HTTP 200 intent=cancellation status=cancelled model=None rid=bv1-9547b760ee73
+     answer: 'He cancelado la acción pendiente: con ella no se ha creado ningún ticket ni solicitud.'
+     audit: http_status=200 result=cancelled customer=CUSTOMER_A gate=cancel command=cancel outcome=cancelled llm_stages=[] cost_usd=0 ticket_lookup=None lead_id=None wf_exec=None key_fp=None
+CHECK PASS: pending action cancelled
+  [CONFIRMAR with B's token after cancel] A/bv1-version: HTTP 200 intent=confirmation status=nothing_pending model=None rid=bv1-4ad7ff4a2790
+     answer: 'No hay ninguna acción preparada pendiente de confirmar en esta conversación. No se ha hecho nada.'
+     audit: http_status=200 result=nothing_pending customer=CUSTOMER_A gate=confirm command=confirm outcome=nothing_pending llm_stages=[] cost_usd=0 ticket_lookup=None lead_id=None wf_exec=None key_fp=None
+CHECK PASS: cancelled action cannot execute
+PHASE version_binding: PASS
+  [CANCELAR on the completed ticket] A/bv1-crit: HTTP 200 intent=cancellation status=already_completed model=None rid=bv1-1de97db8c2f3
+     answer: 'La acción ya se había completado (el ticket T-1003 (id f3e80b8a-dcfd-4cf7-b238-ca7b5e3a9ef4)) y no puede cancelarse. No he borrado ni modificado nada.'
+     result: {"kind": "ticket", "id": "f3e80b8a-dcfd-4cf7-b238-ca7b5e3a9ef4", "reference": "T-1003"}
+     audit: http_status=200 result=already_completed customer=CUSTOMER_A gate=cancel command=cancel outcome=already_completed llm_stages=[] cost_usd=0 ticket_lookup=None lead_id=None wf_exec=None key_fp=None
+CHECK PASS: completed ticket reported as already_completed, not cancelled
+  [CANCELAR on the completed lead] A/bv1-lead: HTTP 200 intent=cancellation status=already_completed model=None rid=bv1-56ba5413707d
+     answer: 'La acción ya se había completado (la solicitud comercial (id 735d34c8-903b-4dbd-adca-9d4e75e6a75b)) y no puede cancelarse. No he borrado ni modificado nada.'
+     result: {"kind": "lead", "id": "735d34c8-903b-4dbd-adca-9d4e75e6a75b"}
+     audit: http_status=200 result=already_completed customer=CUSTOMER_A gate=cancel command=cancel outcome=already_completed llm_stages=[] cost_usd=0 ticket_lookup=None lead_id=None wf_exec=None key_fp=None
+CHECK PASS: completed lead reported as already_completed, not cancelled
+CHECK PASS: completed objects still exist (nothing deleted/reversed)
+PHASE cancel_completed: PASS
+
+===== 22. RESTART / PERSISTENCE =====
+$ docker compose restart
+ Container nexo-n8n-1 Restarting 
+ Container nexo-db-1 Restarting 
+ Container nexo-backend-1 Restarting 
+ Container nexo-db-1 Started 
+ Container nexo-n8n-1 Started 
+ Container nexo-backend-1 Started 
+$ docker compose up -d --wait --wait-timeout 300
+ Container nexo-n8n-1 Running 
+ Container nexo-db-1 Running 
+ Container nexo-backend-1 Running 
+ Container nexo-db-1 Waiting 
+ Container nexo-db-1 Healthy 
+ Container nexo-db-1 Waiting 
+ Container nexo-backend-1 Waiting 
+ Container nexo-n8n-1 Waiting 
+ Container nexo-db-1 Healthy 
+ Container nexo-backend-1 Healthy 
+ Container nexo-n8n-1 Healthy 
+CHECK PASS: db healthy after restart
+CHECK PASS: backend healthy after restart
+CHECK PASS: n8n healthy after restart
+  webhook answered after ~0.6s: HTTP 400 {"code": "invalid_envelope", "detail": "Missing pending_action_id, idempotency_key, payload_hash or lead"}
+CHECK PASS: REAL n8n workflow ACTIVE (400 invalid_envelope from its Respond node)
+PHASE webhook_ready: PASS
+  [T-reference lookup after restart (REAL MODEL)] A/bv1-after: HTTP 200 intent=ticket_status status=ticket_found model=x-ai/grok-4.7 rid=bv1-c8c3566294a1
+     answer: 'Tu ticket T-1003 (f3e80b8a-dcfd-4cf7-b238-ca7b5e3a9ef4, «Sin internet en toda la oficina») está en estado «abierto», con prioridad crítica. Última actualización: 2026-10-07T14:29:44.615961+00:00.'
+     audit: http_status=200 result=ticket_found customer=CUSTOMER_A gate=None command=None outcome=None llm_stages=['intent'] cost_usd=0.003566 ticket_lookup=allowed lead_id=None wf_exec=None key_fp=None
+CHECK PASS: ticket lookup works after restart
+CHECK PASS: lead rows remain
+CHECK PASS: handoffs remain (critical + human)
+CHECK PASS: RAG available after restart
+  [replay the critical ticket confirmation after restart] A/bv1-crit: HTTP 200 intent=confirmation status=ticket_created model=None rid=bv1-ece495b725ad
+     answer: 'Este ticket ya estaba creado: T-1003 (id f3e80b8a-dcfd-4cf7-b238-ca7b5e3a9ef4), prioridad crítica, estado «abierto». Al ser una incidencia crítica la he escalado a una persona (escalado 48faaa3c-39ef-4e6b-b8b4-37b25de1c202). Queda registrado y pendiente de atención humana: todavía no lo ha recogido ninguna persona y no se garantiza un plazo de respuesta.'
+     result: {"kind": "ticket", "id": "f3e80b8a-dcfd-4cf7-b238-ca7b5e3a9ef4", "reference": "T-1003", "status": "open", "priority": "critical", "idempotency": "replay", "handoff": {"id": "48faaa3c-39ef-4e6b-b8b4-37b25de1c202", "reason": "critical_incident", "status": "pending"}}
+     audit: http_status=200 result=ticket_created customer=CUSTOMER_A gate=confirm command=confirm outcome=replayed llm_stages=[] cost_usd=0 ticket_lookup=None lead_id=None wf_exec=None key_fp=1f05c1053030
+CHECK PASS: confirmation replay after restart -> same ticket
+PHASE persist: PASS
+
+===== 23. TEST-ONLY SUITE INSIDE THE REAL BACKEND CONTAINER (scratch DB; scripted/compromised model + stub OpenRouter; NO n8n) =====
+LABEL: TEST behaviour (scripted fake + local stub OpenRouter), NOT the real model. Scratch DB nexo_bv1_test. Leads are proven only with REAL n8n above.
+CHECK PASS: [TEST] lifespan with no key: chat client None (no silent fake)
+--- S1 REAL OpenRouterChatClient -> stub: request parameters + data boundary
+{"ts": "2026-10-07T14:31:17.056+00:00", "request_id": "79d94cd6-c4cc-4147-a6d8-734aef9f41c4", "conversation_id": "s1", "method": "POST", "route": "/chat", "status": 200, "duration_ms": 54.4, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 43, "message_fp": "a080ed286d71", "model": "x-ai/grok-4.7", "llm": [{"stage": "intent", "prompt_tokens": 100, "completion_tokens": 20, "reasoning_tokens": null, "cost_usd": 0.0, "ms": 32.0}], "intent": "ticket_status", "ticket_id": "a0000000-0000-4000-8000-000000000001", "ticket_lookup": "allowed", "result": "ticket_found"}
+CHECK PASS: [TEST] S1 ticket status from PostgreSQL with ONE model call
+CHECK PASS: [TEST] S1 no fallback, strict schema, low reasoning
+CHECK PASS: [TEST] S1 no customer id / tokens / DB password / ticket row sent
+--- S2 failure matrix (real client -> stub), incl. AGENT01A-01 malformed usage
+{"ts": "2026-10-07T14:31:18.078+00:00", "request_id": "1c74e694-b50f-4974-91ec-1cb955ded93f", "conversation_id": "s2", "method": "POST", "route": "/chat", "status": 503, "duration_ms": 1021.6, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 27, "message_fp": "e6f882b4df45", "model": "x-ai/grok-4.7", "result": "error", "error": "llm_unavailable"}
+CHECK PASS: [TEST] S2 timeout: 503 llm_unavailable, answer null
+{"ts": "2026-10-07T14:31:18.099+00:00", "request_id": "80dcdc5c-7f90-46ad-9b51-20299512442c", "conversation_id": "s2", "method": "POST", "route": "/chat", "status": 503, "duration_ms": 19.6, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 27, "message_fp": "e6f882b4df45", "model": "x-ai/grok-4.7", "result": "error", "error": "llm_unavailable"}
+CHECK PASS: [TEST] S2 HTTP 429: 503 llm_unavailable, answer null
+{"ts": "2026-10-07T14:31:18.121+00:00", "request_id": "2ff04ee8-f19a-4ee3-acae-101ed4218139", "conversation_id": "s2", "method": "POST", "route": "/chat", "status": 503, "duration_ms": 20.5, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 27, "message_fp": "e6f882b4df45", "model": "x-ai/grok-4.7", "result": "error", "error": "llm_unavailable"}
+CHECK PASS: [TEST] S2 HTTP 500: 503 llm_unavailable, answer null
+{"ts": "2026-10-07T14:31:18.144+00:00", "request_id": "c1ff5da7-aa27-48a8-b9dd-62c12827760e", "conversation_id": "s2", "method": "POST", "route": "/chat", "status": 503, "duration_ms": 20.9, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 27, "message_fp": "e6f882b4df45", "model": "x-ai/grok-4.7", "result": "error", "error": "llm_invalid_output"}
+CHECK PASS: [TEST] S2 not JSON: 503 llm_invalid_output, answer null
+{"ts": "2026-10-07T14:31:18.164+00:00", "request_id": "636363d4-af0d-41bf-aa46-a501708435ee", "conversation_id": "s2", "method": "POST", "route": "/chat", "status": 503, "duration_ms": 19.6, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 27, "message_fp": "e6f882b4df45", "model": "x-ai/grok-4.7", "llm": [{"stage": "intent", "prompt_tokens": 100, "completion_tokens": 20, "reasoning_tokens": null, "cost_usd": 0.0, "ms": 1.0}], "result": "error", "error": "llm_invalid_output"}
+CHECK PASS: [TEST] S2 extra authority field: 503 llm_invalid_output, answer null
+{"ts": "2026-10-07T14:31:18.182+00:00", "request_id": "0dabe835-9da9-4b88-869e-68cd4b825b89", "conversation_id": "s2", "method": "POST", "route": "/chat", "status": 503, "duration_ms": 18.1, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 27, "message_fp": "e6f882b4df45", "model": "x-ai/grok-4.7", "result": "error", "error": "llm_invalid_output"}
+CHECK PASS: [TEST] S2 truncated: 503 llm_invalid_output, answer null
+CHECK PASS: [TEST] S2 wrong served model: 503 llm_model_mismatch, answer null
+{"ts": "2026-10-07T14:31:18.201+00:00", "request_id": "6f27a8fa-5df1-4a2a-9480-6046e644cc9b", "conversation_id": "s2", "method": "POST", "route": "/chat", "status": 503, "duration_ms": 17.9, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 27, "message_fp": "e6f882b4df45", "model": "x-ai/grok-4.7", "result": "error", "error": "llm_model_mismatch"}
+{"ts": "2026-10-07T14:31:18.219+00:00", "request_id": "b8ef6f9f-1ddc-4f98-bd0f-0b7011143b3a", "conversation_id": "s2", "method": "POST", "route": "/chat", "status": 503, "duration_ms": 18.1, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 27, "message_fp": "e6f882b4df45", "model": "x-ai/grok-4.7", "result": "error", "error": "llm_invalid_output"}
+CHECK PASS: [TEST] S2 malformed usage (AGENT01A-01): 503 llm_invalid_output, answer null
+--- S3 confirmation version binding (scripted model)
+{"ts": "2026-10-07T14:31:18.274+00:00", "request_id": "8ceb33e9-b40e-40ce-9d10-103dbeeb3614", "conversation_id": "s3", "method": "POST", "route": "/chat", "status": 200, "duration_ms": 45.9, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 10, "message_fp": "138a2353f596", "model": "test-only/fake-chat", "llm": [{"stage": "intent", "prompt_tokens": 10, "completion_tokens": 5, "reasoning_tokens": 0, "cost_usd": 0.0, "ms": 1.0}], "intent": "create_ticket", "chat_command": "prepare", "action_kind": "ticket", "basis_revision": 0, "revision": 0, "authoritative": "none", "outcome": "prepared", "action_fp": "3f2d18e8f152", "result": "awaiting_confirmation"}
+{"ts": "2026-10-07T14:31:18.308+00:00", "request_id": "3d75822c-4209-4935-b029-440f100d01ea", "conversation_id": "s3", "method": "POST", "route": "/chat", "status": 200, "duration_ms": 33.4, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 10, "message_fp": "4d09879e0901", "model": "test-only/fake-chat", "llm": [{"stage": "intent", "prompt_tokens": 10, "completion_tokens": 5, "reasoning_tokens": 0, "cost_usd": 0.0, "ms": 1.0}], "intent": "create_ticket", "chat_command": "prepare", "action_kind": "ticket", "basis_revision": 1, "revision": 1, "authoritative": "pending", "outcome": "re_prepared", "action_fp": "7a0a87259668", "result": "awaiting_confirmation"}
+{"ts": "2026-10-07T14:31:18.337+00:00", "request_id": "090460d9-3378-4807-8e7f-4b04232c7abb", "conversation_id": "s3", "method": "POST", "route": "/chat", "status": 200, "duration_ms": 27.9, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 9, "message_fp": "681a2910300b", "gate": "confirm", "chat_command": "confirm", "token_presented": true, "admitted_revision": 2, "revision": 2, "outcome": "stale_confirmation", "action_kind": "ticket", "action_fp": "7a0a87259668", "result": "confirmation_review_required"}
+CHECK PASS: [TEST] S3 old token A cannot execute B: review required, B shown
+{"ts": "2026-10-07T14:31:18.366+00:00", "request_id": "e79a94d4-a83b-42a5-8a88-d9f21da14d62", "conversation_id": "s3", "method": "POST", "route": "/chat", "status": 200, "duration_ms": 28.3, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 9, "message_fp": "681a2910300b", "gate": "confirm", "chat_command": "confirm", "token_presented": false, "admitted_revision": 2, "revision": 2, "outcome": "token_missing", "action_kind": "ticket", "action_fp": "7a0a87259668", "result": "confirmation_review_required"}
+CHECK PASS: [TEST] S3 missing token: review required
+CHECK PASS: [TEST] S3 no ticket so far
+{"ts": "2026-10-07T14:31:18.414+00:00", "request_id": "eb97d7b1-6973-4687-a473-db424b1fe362", "conversation_id": "s3", "method": "POST", "route": "/chat", "status": 200, "duration_ms": 38.9, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 9, "message_fp": "681a2910300b", "gate": "confirm", "chat_command": "confirm", "token_presented": true, "admitted_revision": 2, "revision": 2, "action_kind": "ticket", "action_fp": "7a0a87259668", "idempotency_key_fp": "5ae4660d8861", "service_outcome": "confirmed", "outcome": "created", "ticket_id": "61267620-00ec-486b-a39d-1903dfffa0b5", "ticket_reference": "T-1003", "idempotency": "created", "handoff_id": "92a7a851-d57e-42a5-a6bd-eb5f1947551d", "handoff_idempotency": "created", "result": "ticket_created"}
+{"ts": "2026-10-07T14:31:18.449+00:00", "request_id": "77270344-1298-4ff9-9573-e7479690be69", "conversation_id": "s3", "method": "POST", "route": "/chat", "status": 200, "duration_ms": 33.9, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 9, "message_fp": "681a2910300b", "gate": "confirm", "chat_command": "confirm", "token_presented": true, "admitted_revision": 4, "revision": 4, "action_kind": "ticket", "action_fp": "7a0a87259668", "idempotency_key_fp": "5ae4660d8861", "service_outcome": "replayed", "outcome": "replayed", "ticket_id": "61267620-00ec-486b-a39d-1903dfffa0b5", "ticket_reference": "T-1003", "idempotency": "replay", "handoff_id": "92a7a851-d57e-42a5-a6bd-eb5f1947551d", "handoff_idempotency": "replay", "result": "ticket_created"}
+CHECK PASS: [TEST] S3 token B executes once; replay same ticket
+--- S4 authoritative cancellation (API-style confirm wins between state load and cancel)
+{"ts": "2026-10-07T14:31:18.489+00:00", "request_id": "f5b76748-027a-460d-bab2-c0ce606c65d8", "conversation_id": "s4", "method": "POST", "route": "/chat", "status": 200, "duration_ms": 32.0, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 10, "message_fp": "138a2353f596", "model": "test-only/fake-chat", "llm": [{"stage": "intent", "prompt_tokens": 10, "completion_tokens": 5, "reasoning_tokens": 0, "cost_usd": 0.0, "ms": 1.0}], "intent": "create_ticket", "chat_command": "prepare", "action_kind": "ticket", "basis_revision": 0, "revision": 0, "authoritative": "none", "outcome": "prepared", "action_fp": "18c1ce13f770", "result": "awaiting_confirmation"}
+{"ts": "2026-10-07T14:31:18.540+00:00", "request_id": "09f00d71-7c05-4351-b4d2-09aa260e62c2", "conversation_id": "s4", "method": "POST", "route": "/chat", "status": 200, "duration_ms": 40.8, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 8, "message_fp": "b1a5fe65d180", "gate": "cancel", "chat_command": "cancel", "action_fp": "18c1ce13f770", "other_actions_cancelled": 0, "action_status": "consumed", "outcome": "already_completed", "created_id": "03041c98-4385-4f45-8ee4-f84265140624", "result": "already_completed"}
+CHECK PASS: [TEST] S4 already_completed (never a false 'cancelled')
+CHECK PASS: [TEST] S4 chat state completed; ticket kept
+--- S5 corrupted cross-conversation pointer + CANCELAR (zero cancel calls)
+{"ts": "2026-10-07T14:31:18.581+00:00", "request_id": "f91597e6-c6b6-4de5-8642-deda2fbcfc68", "conversation_id": "s5x", "method": "POST", "route": "/chat", "status": 200, "duration_ms": 32.2, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 10, "message_fp": "138a2353f596", "model": "test-only/fake-chat", "llm": [{"stage": "intent", "prompt_tokens": 10, "completion_tokens": 5, "reasoning_tokens": 0, "cost_usd": 0.0, "ms": 1.0}], "intent": "create_ticket", "chat_command": "prepare", "action_kind": "ticket", "basis_revision": 0, "revision": 0, "authoritative": "none", "outcome": "prepared", "action_fp": "baa08d46d56c", "result": "awaiting_confirmation"}
+{"ts": "2026-10-07T14:31:18.623+00:00", "request_id": "0ba71b20-0212-43b9-b844-e761d2d0a046", "conversation_id": "s5y", "method": "POST", "route": "/chat", "status": 200, "duration_ms": 21.9, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 8, "message_fp": "b1a5fe65d180", "gate": "cancel", "chat_command": "cancel", "action_fp": "baa08d46d56c", "outcome": "pointer_not_in_conversation", "other_actions_cancelled": 0, "result": "not_pending"}
+CHECK PASS: [TEST] S5 zero cancel calls, X still pending
+--- S6 compromised model / isolation / auth
+{"ts": "2026-10-07T14:31:18.651+00:00", "request_id": "de836347-6efa-4ec2-85cb-da014dcfbc9d", "conversation_id": "s6", "method": "POST", "route": "/chat", "status": 503, "duration_ms": 19.2, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 112, "message_fp": "77519b370fb4", "model": "test-only/fake-chat", "llm": [{"stage": "intent", "prompt_tokens": 10, "completion_tokens": 5, "reasoning_tokens": 0, "cost_usd": 0.0, "ms": 1.0}], "result": "error", "error": "llm_invalid_output"}
+CHECK PASS: [TEST] S6 extra field confirmation -> 503 llm_invalid_output
+{"ts": "2026-10-07T14:31:18.670+00:00", "request_id": "4843255f-baed-4ba3-89d8-5764c2af81a9", "conversation_id": "s6", "method": "POST", "route": "/chat", "status": 503, "duration_ms": 18.2, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 112, "message_fp": "77519b370fb4", "model": "test-only/fake-chat", "llm": [{"stage": "intent", "prompt_tokens": 10, "completion_tokens": 5, "reasoning_tokens": 0, "cost_usd": 0.0, "ms": 1.0}], "result": "error", "error": "llm_invalid_output"}
+CHECK PASS: [TEST] S6 extra field customer_id -> 503 llm_invalid_output
+{"ts": "2026-10-07T14:31:18.690+00:00", "request_id": "e268f484-23f2-4473-92cc-283bcfded5f0", "conversation_id": "s6", "method": "POST", "route": "/chat", "status": 503, "duration_ms": 18.8, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 112, "message_fp": "77519b370fb4", "model": "test-only/fake-chat", "llm": [{"stage": "intent", "prompt_tokens": 10, "completion_tokens": 5, "reasoning_tokens": 0, "cost_usd": 0.0, "ms": 1.0}], "result": "error", "error": "llm_invalid_output"}
+CHECK PASS: [TEST] S6 extra field action_id -> 503 llm_invalid_output
+{"ts": "2026-10-07T14:31:18.714+00:00", "request_id": "1e12faee-1be5-4a8a-bfc7-d9abc01b7b22", "conversation_id": "s6", "method": "POST", "route": "/chat", "status": 503, "duration_ms": 22.4, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 112, "message_fp": "77519b370fb4", "model": "test-only/fake-chat", "llm": [{"stage": "intent", "prompt_tokens": 10, "completion_tokens": 5, "reasoning_tokens": 0, "cost_usd": 0.0, "ms": 1.0}], "result": "error", "error": "llm_invalid_output"}
+CHECK PASS: [TEST] S6 extra field tool -> 503 llm_invalid_output
+{"ts": "2026-10-07T14:31:18.734+00:00", "request_id": "01307ae2-85c4-4579-9854-9a9bc5df876e", "conversation_id": "s6b", "method": "POST", "route": "/chat", "status": 200, "duration_ms": 20.0, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 13, "message_fp": "1d370afa3b53", "model": "test-only/fake-chat", "llm": [{"stage": "intent", "prompt_tokens": 10, "completion_tokens": 5, "reasoning_tokens": 0, "cost_usd": 0.0, "ms": 1.0}], "intent": "ticket_status", "ticket_reference": "T-1002", "ticket_lookup": "denied_not_owner", "result": "ticket_not_found"}
+{"ts": "2026-10-07T14:31:18.754+00:00", "request_id": "56c83e6e-7d8e-4d6b-bb32-e3072ea16989", "conversation_id": "s6c", "method": "POST", "route": "/chat", "status": 200, "duration_ms": 19.3, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 13, "message_fp": "a8ae66343f50", "model": "test-only/fake-chat", "llm": [{"stage": "intent", "prompt_tokens": 10, "completion_tokens": 5, "reasoning_tokens": 0, "cost_usd": 0.0, "ms": 1.0}], "intent": "ticket_status", "ticket_reference": "T-9999", "ticket_lookup": "not_found", "result": "ticket_not_found"}
+CHECK PASS: [TEST] S6 foreign T-ref == nonexistent
+{"ts": "2026-10-07T14:31:18.755+00:00", "request_id": "23e42897-4c41-419a-b304-67a6913b8dbe", "conversation_id": null, "method": "POST", "route": "/chat", "status": 401, "duration_ms": 0.9, "result": "unauthenticated"}
+CHECK PASS: [TEST] S6 no token -> 401
+{"ts": "2026-10-07T14:31:18.766+00:00", "request_id": "f07c5c36-3780-4926-a2d0-533c4bdc95af", "conversation_id": null, "method": "POST", "route": "/chat", "status": 422, "duration_ms": 10.5, "customer_id": "CUSTOMER_A"}
+CHECK PASS: [TEST] S6 customer_id in body -> 422
+{"ts": "2026-10-07T14:31:18.777+00:00", "request_id": "57f443a3-f7a5-4d1e-821f-3075576b7f32", "conversation_id": null, "method": "POST", "route": "/chat", "status": 422, "duration_ms": 10.0, "customer_id": "CUSTOMER_A"}
+CHECK PASS: [TEST] S6 bad confirmation_token -> 422
+--- S7 STRUCTURAL READ-ONLY on the read path
+{"ts": "2026-10-07T14:31:18.797+00:00", "request_id": "d8a316d6-13c5-4bb5-a171-732c01673fcd", "conversation_id": "s7", "method": "POST", "route": "/chat", "status": 503, "duration_ms": 19.7, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 43, "message_fp": "a080ed286d71", "model": "test-only/fake-chat", "llm": [{"stage": "intent", "prompt_tokens": 10, "completion_tokens": 5, "reasoning_tokens": 0, "cost_usd": 0.0, "ms": 1.0}], "intent": "ticket_status", "result": "error", "error": "database_unavailable"}
+CHECK PASS: [TEST] S7 write on the read path refused by PostgreSQL -> 503
+CHECK PASS: [TEST] S7 no ticket closed
+SUITE: 29 checks, ALL PASS
+CHECK PASS: scratch database dropped; suite files removed
+CHECK PASS: REAL validation DB untouched by the TEST suite
+
+===== 24. TRACEABILITY + SECRET HYGIENE =====
+  correlated lead chain (chat confirm -> n8n -> private writer):
+   {"ts": "2026-10-07T14:30:23.282+00:00", "request_id": "bv1-697d512cad16", "conversation_id": "bv1-lead", "method": "POST", "route": "/chat", "status": 200, "duration_ms": 185.5, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 9, "message_fp": "681a2910300b", "gate": "confirm", "chat_command": "confirm", "token_presented": true, "admitted_revision": 2, "revision": 2, "action_kind": "lead", "action_fp": "f0a8965b0f1b", "idempotency_key_fp": "cc9187714afa", "service_outcome": "confirmed", "outcome": "created", "lead_id": "735d34c8-903b-4dbd-adca-9d4e75e6a75b", "workflow_execution_id": "2", "idempotency": "created", "result": "lead_created"}
+   {"ts": "2026-10-07T14:30:23.248+00:00", "request_id": "bv1-697d512cad16", "conversation_id": null, "method": "POST", "route": "/internal/leads", "status": 201, "duration_ms": 27.8, "service": "n8n-lead-writer", "action": "lead_write", "pending_action_id": "faf22f40-bcfc-4b4b-bb3e-249a7d9f4775", "workflow_execution_id": "2", "idempotency_key_fp": "cc9187714afa", "lead_id": "735d34c8-903b-4dbd-adca-9d4e75e6a75b", "idempotency": "created", "result": "success"}
+CHECK PASS: correlation: chat request_id/conversation -> confirm -> n8n execution -> writer -> lead
+  audit line of the deliberately cut-off request: {"ts": "2026-10-07T14:29:52.108+00:00", "request_id": "bv1-lost-1", "conversation_id": "bv1-lost", "method": "POST", "route": "/chat", "status": 200, "duration_ms": 56.4, "customer_id": "CUSTOMER_A", "action": "chat", "message_length": 9, "message_fp": "681a2910300b", "gate": "confirm", "chat_command": "confirm", "token_presented": true, "admitted_revision": 1, "revision": 1, "action_kind": "ticket", "action_fp": "dad814299d68", "idempotency_key_fp": "802e25c50159", "service_outcome": "confirmed", "outcome": "created", "ticket_id": "780e4d3e-4fe1-4f59-8da4-6661c43f963f", "ticket_reference": "T-1005", "idempotency": "created", "result": "ticket_created"}
+CHECK PASS: every chat event (except the cut-off one) has request/conversation/customer/status/duration/result
+CHECK PASS: backend logs: no OpenRouter key / bearer tokens / service token / DB password / n8n key
+CHECK PASS: backend logs: no Authorization header value
+CHECK PASS: n8n logs: no OpenRouter key / bearer tokens / service token / DB password / n8n key
+CHECK PASS: n8n logs: no Authorization header value
+CHECK PASS: harness run log: no OpenRouter key / bearer tokens / service token / DB password / n8n key
+CHECK PASS: harness run log: no Authorization header value
+CHECK PASS: backend logs: no raw reasoning
+CHECK PASS: backend logs: no lead contact details or ticket free text
+  REAL model usage: 36 chat turns, 20 LLM calls, total cost $0.071722
+  final counts: tickets=5 leads=2 handoffs=3 n8n executions=5
+PHASE logs: PASS
+POSTGRES_PASSWORD: run log 0, container logs 0
+CHECK PASS: POSTGRES_PASSWORD value not in logs
+AUTH_TOKEN_CUSTOMER_A: run log 0, container logs 0
+CHECK PASS: AUTH_TOKEN_CUSTOMER_A value not in logs
+AUTH_TOKEN_CUSTOMER_B: run log 0, container logs 0
+CHECK PASS: AUTH_TOKEN_CUSTOMER_B value not in logs
+N8N_ENCRYPTION_KEY: run log 0, container logs 0
+CHECK PASS: N8N_ENCRYPTION_KEY value not in logs
+OPENROUTER_API_KEY: run log 0, container logs 0
+CHECK PASS: OPENROUTER_API_KEY value not in logs
+CHECK PASS: lead-writer service token not in logs
+
+===== 25. RESULT =====
+AGENT-01BV1 VM VALIDATION: ALL CHECKS PASS
+final: tickets=5 leads=2 handoffs=3 chat_conversations=6
+
+===== 26. CLEANUP (temporary validation: full teardown, owner decision) =====
+ Network nexo_internal Removing 
+ Volume nexo_n8n_data Removing 
+ Volume nexo_db_data Removed 
+ Volume nexo_n8n_data Removed 
+ Network nexo_automation Removed 
+ Network nexo_internal Removed 
+Untagged: n8nio/n8n:2.42.3
+Deleted: sha256:240eaa2a3d491adac5817aa4c3f1c521bb18ec79f6e448517158d5220ee0f37b
+Untagged: pgvector/pgvector:0.8.7-pg17-bookworm
+Deleted: sha256:ac08538c6f8b9904c33c8224c5e5706dbe760aca29db1d096972b4052c22a75d
+Total:	249.4MB
+
+===== 27. FINAL STATE =====
+$ docker ps -a
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+$ docker images
+IMAGE   ID             DISK USAGE   CONTENT SIZE   EXTRA
+$ docker volume ls
+DRIVER    VOLUME NAME
+$ docker network ls
+NETWORK ID     NAME      DRIVER    SCOPE
+6381b14192e7   bridge    bridge    local
+5885cec536ca   host      host      local
+447cca8214c8   none      null      local
+$ docker system df
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          0         0         0B        0B
+Containers      0         0         0B        0B
+Local Volumes   0         0         0B        0B
+Build Cache     0         0         0B        0B
+$ ss -tlnH
+LISTEN 0      4096         0.0.0.0:9922 0.0.0.0:*
+LISTEN 0      4096      127.0.0.54:53   0.0.0.0:*
+LISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*
+LISTEN 0      4096            [::]:9922    [::]:*
+nexo containers: 0
+nexo volumes: 0
+no :8000/:5432/:5678 listener
+temporary directory removed (checkout, .env, key file, service token, bundle, driver, suite, n8n DB copies)

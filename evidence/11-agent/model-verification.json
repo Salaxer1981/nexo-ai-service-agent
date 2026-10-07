@@ -1,0 +1,125 @@
+{
+ "source": "OpenRouter public catalogue GET /api/v1/models (no key) + GET /api/v1/models/x-ai/grok-4.7/endpoints, 2026-10-07",
+ "recommendation": "Grok 4.7 (contact recommendation)",
+ "verified_model_id": "x-ai/grok-4.7",
+ "display_name": "SpaceXAI: Grok 4.7",
+ "pricing_usd_per_M_tokens": {
+  "prompt": 2.0,
+  "completion": 6.0,
+  "input_cache_read": 0.5,
+  "over_200k_prompt_tokens": {
+   "prompt": 4.0,
+   "completion": 12.0
+  }
+ },
+ "context_length": 500000,
+ "supported_parameters": [
+  "include_reasoning",
+  "logprobs",
+  "max_tokens",
+  "reasoning",
+  "reasoning_effort",
+  "response_format",
+  "seed",
+  "structured_outputs",
+  "temperature",
+  "tool_choice",
+  "tools",
+  "top_logprobs",
+  "top_p"
+ ],
+ "other_grok_models_in_catalogue": [
+  {
+   "id": "x-ai/grok-4.20",
+   "prompt_usd_per_M": 1.25,
+   "completion_usd_per_M": 2.5
+  },
+  {
+   "id": "x-ai/grok-4.20-multi-agent",
+   "prompt_usd_per_M": 1.25,
+   "completion_usd_per_M": 2.5
+  },
+  {
+   "id": "x-ai/grok-4.3",
+   "prompt_usd_per_M": 1.25,
+   "completion_usd_per_M": 2.5
+  },
+  {
+   "id": "x-ai/grok-4.3:batch",
+   "prompt_usd_per_M": 1.0,
+   "completion_usd_per_M": 2.0
+  },
+  {
+   "id": "x-ai/grok-4.5",
+   "prompt_usd_per_M": 2.0,
+   "completion_usd_per_M": 6.0
+  },
+  {
+   "id": "x-ai/grok-4.6",
+   "prompt_usd_per_M": 2.0,
+   "completion_usd_per_M": 6.0
+  },
+  {
+   "id": "x-ai/grok-4.7",
+   "prompt_usd_per_M": 2.0,
+   "completion_usd_per_M": 6.0
+  },
+  {
+   "id": "x-ai/grok-build-0.1",
+   "prompt_usd_per_M": 1.0,
+   "completion_usd_per_M": 2.0
+  },
+  {
+   "id": "~x-ai/grok-latest",
+   "prompt_usd_per_M": 2.0,
+   "completion_usd_per_M": 6.0
+  }
+ ],
+ "live_probes (synthetic input; key never printed)": [
+  {
+   "probe": "effort-low-excluded",
+   "http": 200,
+   "requested_model": "x-ai/grok-4.7",
+   "served_model": "x-ai/grok-4.7",
+   "provider": "xAI",
+   "finish_reason": "stop",
+   "content": "{\"intent\":\"knowledge_question\"}",
+   "reasoning_returned": false,
+   "usage": {
+    "prompt_tokens": 1332,
+    "completion_tokens": 105,
+    "total_tokens": 1437,
+    "cost": 0.001566,
+    "is_byok": false,
+    "prompt_tokens_details": {
+     "cached_tokens": 1152,
+     "cache_write_tokens": 0,
+     "audio_tokens": 0,
+     "video_tokens": 0
+    },
+    "cost_details": {
+     "upstream_inference_cost": 0.001566,
+     "upstream_inference_prompt_cost": 0.000936,
+     "upstream_inference_completions_cost": 0.00063
+    },
+    "completion_tokens_details": {
+     "reasoning_tokens": 97,
+     "image_tokens": 0,
+     "audio_tokens": 0
+    }
+   },
+   "seconds": 2.05
+  },
+  {
+   "probe": "reasoning-disabled",
+   "http": 400,
+   "error": "{\"error\":{\"message\":\"Reasoning is mandatory for this endpoint and cannot be disabled.\",\"code\":400,\"metadata\":{\"provider_name\":null}}}"
+  }
+ ],
+ "conclusions": [
+  "x-ai/grok-4.7 exists and serves exactly that id (no substitution observed)",
+  "structured outputs (json_schema, strict) work: valid JSON, finish_reason=stop",
+  "reasoning is MANDATORY on this endpoint (disabling returns HTTP 400); low effort used ~100 reasoning tokens per call, billed as output",
+  "measured cost (live smoke): intent call $0.0013-0.0023 (avg $0.0018), grounded-answer call $0.0020-0.0040 (avg $0.0030); 14 turns / 18 calls = $0.0378"
+ ]
+}

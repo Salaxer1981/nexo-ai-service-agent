@@ -1,0 +1,66 @@
+# AGENT-01B mutation checks (local: Windows 11, Python 3.12.10, REAL PostgreSQL 17.11 + pgvector 0.8.7; TEST-ONLY scripted model; FakeN8n = TEST stand-in, NOT n8n)
+
+Each protection broken ALONE in application code, tests/test_chat_actions.py + tests/test_agent.py run, file restored.
+
+## Run 1 (background): B1-B11 completed, then KILLED by Claude Code's memory-pressure reaper (system memory low)
+The kill hit during B12: its mutation was LEFT APPLIED in agent.py (handoff-reason enum check disabled). Detected by
+re-checking every mutation site, restored to the exact original line, all 18 sites verified, focused suites 120 passed,
+leftover test cluster removed. Lesson: background mutation runs are not kill-safe; later batches ran in the FOREGROUND.
+
+B1 explicit confirmation gate widened ('vale', 'ok', 'sí' confirm): FAILED tests/test_chat_actions.py::test_ambiguous_replies_never_confirm[ok]
+   caught by: ['test_ambiguous_replies_never_confirm', 'test_gate_accepts_only_the_documented_words']
+B2 model output may carry extra authority fields (confirmation, action_id, tool, url, sql...): FAILED tests/test_chat_actions.py::test_compromised_model_extra_authority_fields_are_rejected[extra10]
+   caught by: ['test_compromised_model_extra_authority_fields_are_rejected']
+B3 model may put customer_id (or any key) inside the draft group: FAILED tests/test_chat_actions.py::test_compromised_model_nested_identity_field_is_rejected
+   caught by: ['test_compromised_model_nested_identity_field_is_rejected']
+B4 conversation scope removed from state (latest action of the customer, any conversation): FAILED tests/test_agent.py::test_audit_on_failure_keeps_intent_and_usage - As...
+   caught by: ['test_action_intents_without_data_only_collect', 'test_ambiguous_replies_never_confirm', 'test_audit_has_action_facts_but_no_keys_contacts_or_free_text', 'test_audit_has_decision_facts_but_no_text_or_secrets', 'test_audit_on_failure_keeps_intent_and_usage', 'test_cancel_lead_never_reaches_the_workflow', 'test_cancel_ticket_then_confirm_does_nothing', 'test_changed_data_reprepares_an …(truncated)
+B5 customer scope removed from state (any customer's conversation with that id): FAILED tests/test_agent.py::test_audit_on_failure_keeps_intent_and_usage - As...
+   caught by: ['test_action_intents_without_data_only_collect', 'test_ambiguous_replies_never_confirm', 'test_audit_has_action_facts_but_no_keys_contacts_or_free_text', 'test_audit_has_decision_facts_but_no_text_or_secrets', 'test_audit_on_failure_keeps_intent_and_usage', 'test_cancel_lead_never_reaches_the_workflow', 'test_cancel_ticket_then_confirm_does_nothing', 'test_changed_data_reprepares_an …(truncated)
+B6 bypass confirmation: prepare and create in the same turn: FAILED tests/test_chat_actions.py::test_other_customer_and_other_conversation_cannot_reach_a_pending_action
+   caught by: ['test_cancel_ticket_then_confirm_does_nothing', 'test_changed_data_reprepares_and_old_version_cannot_execute', 'test_concurrent_ticket_confirmations_create_exactly_one', 'test_expired_action_is_not_confirmed', 'test_injection_cannot_confirm_or_execute', 'test_other_customer_and_other_conversation_cannot_reach_a_pending_action', 'test_ticket_db_failure_after_commit_then_retry_is_exac …(truncated)
+B7 idempotency key not deterministic (random per CONFIRMAR): FAILED tests/test_chat_actions.py::test_lead_n8n_down_is_honest_and_resumes_exactly_once
+   caught by: ['test_lead_journey_collect_prepare_confirm_through_workflow_replay', 'test_lead_n8n_down_is_honest_and_resumes_exactly_once', 'test_ticket_db_failure_after_commit_then_retry_is_exactly_once', 'test_ticket_journey_collect_prepare_confirm_critical_handoff_replay']
+B8 lead routed directly to the DB (n8n hop bypassed): FAILED tests/test_chat_actions.py::test_audit_has_action_facts_but_no_keys_contacts_or_free_text
+   caught by: ['test_audit_has_action_facts_but_no_keys_contacts_or_free_text', 'test_lead_journey_collect_prepare_confirm_through_workflow_replay', 'test_lead_n8n_down_is_honest_and_resumes_exactly_once', 'test_lead_workflow_rejection_creates_nothing']
+B9 cancel does not really cancel (cancelled action stays confirmable): FAILED tests/test_chat_actions.py::test_two_pending_actions_in_one_conversation_execute_nothing
+   caught by: ['test_cancel_ticket_then_confirm_does_nothing', 'test_two_pending_actions_in_one_conversation_execute_nothing']
+B10 chat treats a cancelled pointer as confirmable: FAILED tests/test_chat_actions.py::test_cancel_lead_never_reaches_the_workflow
+   caught by: ['test_cancel_lead_never_reaches_the_workflow', 'test_cancel_ticket_then_confirm_does_nothing']
+B11 ambiguity check removed (two pending actions in one conversation): FAILED tests/test_chat_actions.py::test_two_pending_actions_in_one_conversation_execute_nothing
+   caught by: ['test_two_pending_actions_in_one_conversation_execute_nothing']
+
+## Runs 2-4 (foreground, sequential: backup -> mutate -> test -> restore byte-exact -> verify; memory load logged)
+Batch 1 = B12-B15; batch 2 = B16-B18. B17 was NOT CAUGHT in batch 2 (the services already serialize confirmations, so
+no outcome test failed). A deterministic test of the stated invariant was added
+(test_turns_of_one_conversation_are_serialized_by_the_conversation_lock: a turn waits on the conversation lock,
+observed in pg_locks) and B17 was re-run alone: CAUGHT.
+
+B12 model may choose any handoff reason (incl. critical_incident): 3 failed, 117 passed, 1 warning in 76.82s (0:01:16)
+   caught by: ['test_model_cannot_choose_reasons_outside_its_enum']
+   restored byte-exact: True | pytest rc 1 | 79s | memory before: load 92% avail 0.5/5.8 GiB | after: load 91% avail 0.5/5.8 GiB
+B13 contact e-mail need not be typed by the customer: 1 failed, 119 passed, 1 warning in 82.85s (0:01:22)
+   caught by: ['test_lead_email_must_be_typed_by_the_customer']
+   restored byte-exact: True | pytest rc 1 | 85s | memory before: load 91% avail 0.5/5.8 GiB | after: load 92% avail 0.4/5.8 GiB
+B14 critical incidents not escalated: 1 failed, 119 passed, 1 warning in 70.99s (0:01:10)
+   caught by: ['test_ticket_journey_collect_prepare_confirm_critical_handoff_replay']
+   restored byte-exact: True | pytest rc 1 | 73s | memory before: load 92% avail 0.4/5.8 GiB | after: load 90% avail 0.5/5.8 GiB
+B15 short reference resolved without the customer scope: 4 failed, 116 passed, 1 warning in 72.85s (0:01:12)
+   caught by: ['test_new_tickets_get_a_resolvable_reference', 'test_short_references_are_customer_scoped_and_immutable', 'test_ticket_id_must_be_typed_by_the_customer', 'test_whole_battery_of_turns_mutates_nothing']
+   restored byte-exact: True | pytest rc 1 | 74s | memory before: load 90% avail 0.5/5.8 GiB | after: load 89% avail 0.6/5.8 GiB
+B16 AGENT01A-01 usage validation removed: 11 failed, 109 passed, 1 warning in 72.51s (0:01:12)
+   caught by: ['test_agent01a01_malformed_usage_metadata_is_invalid_output']
+   restored byte-exact: True | pytest rc 1 | 74s | memory before: load 87% avail 0.7/5.8 GiB | after: load 83% avail 1.0/5.8 GiB
+B17 per-conversation advisory lock removed (services still serialize): 120 passed, 1 warning in 69.67s (0:01:09)
+   caught by: NOT CAUGHT
+   restored byte-exact: True | pytest rc 0 | 71s | memory before: load 83% avail 1.0/5.8 GiB | after: load 80% avail 1.1/5.8 GiB
+B18 the confirmation turn calls the model first: 18 failed, 102 passed, 15 warnings in 65.93s (0:01:05)
+   caught by: ['test_audit_has_action_facts_but_no_keys_contacts_or_free_text', 'test_cancel_lead_never_reaches_the_workflow', 'test_cancel_ticket_then_confirm_does_nothing', 'test_changed_data_reprepares_and_old_version_cannot_execute', 'test_concurrent_lead_confirmations_create_exactly_one', 'test_concurrent_ticket_confirmations_create_exactly_one', 'test_expired_action_is_not_confirmed', 'test_lead_journey_collect_prepare_confirm_through_workflow_replay', 'test_lead_n8n_down_is_honest_and_resumes_exactly_once', 'test_lead_response_lost_after_workflow_commit_recovers', 'test_lead_workflow_rejection_creates_nothing', 'test_llm_down_before_prepare_and_db_down', 'test_new_tickets_get_a_resolvable_reference', 'test_normal_ticket_is_not_escalated', 'test_other_customer_and_other_conversation_cannot_reach_a_pending_action', 'test_ticket_db_failure_after_commit_then_retry_is_exactly_once', 'test_ticket_journey_collect_prepare_confirm_critical_handoff_replay', 'test_two_pending_actions_in_one_conversation_execute_nothing']
+   restored byte-exact: True | pytest rc 1 | 67s | memory before: load 80% avail 1.1/5.8 GiB | after: load 90% avail 0.6/5.8 GiB
+B17 per-conversation advisory lock removed (services still serialize): 1 failed, 120 passed, 1 warning in 101.47s (0:01:41)
+   caught by: ['test_turns_of_one_conversation_are_serialized_by_the_conversation_lock']
+   restored byte-exact: True | pytest rc 1 | 103s | memory before: load 86% avail 0.8/5.8 GiB | after: load 85% avail 0.8/5.8 GiB
+
+RESULT: B1-B18 all caught (B17 after the added test). After every batch: all 18 sites original, no mutant text in any
+app source file (stale __pycache__ removed), 0 PostgreSQL processes, 0 temp clusters, focused suites 120 passed
+(121 after adding the serialization test).

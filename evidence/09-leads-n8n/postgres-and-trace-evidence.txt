@@ -1,0 +1,38 @@
+# APP-03B representative lead evidence: LOCAL, throwaway PostgreSQL 17.11, synthetic data.
+# The n8n hop here is FakeN8n (a test stand-in), NOT n8n. Real n8n execution = VM phase.
+
+1. prepare -> HTTP 201  {"pending_action_id": "fe972b8f-29be-4180-a040-899f73ed1352", "status": "pending"}
+2. prepare again with changed need (same conversation) -> #1 superseded -> HTTP 201  {"pending_action_id": "b3f19b74-5982-4cc2-b980-821953cb5548", "status": "pending"}
+3. confirm superseded #1 -> HTTP 409  {"code": "confirmation_invalid"}
+4. confirm #2 (key evidence-lk2) -> workflow -> /internal/leads -> HTTP 201 created {"id": "d88c072e-568b-4063-80a8-b4cfc3184141", "workflow_execution_id": "fake-exec-1"}
+5. retry same key -> HTTP 201 replay {"id": "d88c072e-568b-4063-80a8-b4cfc3184141", "workflow_execution_id": "fake-exec-1"}
+6. reuse consumed #2 with new key -> HTTP 409  {"code": "confirmation_already_used"}
+7. CUSTOMER_A token calls /internal/leads directly -> HTTP 401  {}
+FakeN8n calls: 1
+
+## pending_lead_actions (conv-evidence-lead)
+id | requested_by_customer_id | status | payload_hash | key_bound | consumed
+fe972b8f-29be-4180-a040-899f73ed1352 | CUSTOMER_A | superseded | 5b964ffb11d8abe2… | False | False
+b3f19b74-5982-4cc2-b980-821953cb5548 | CUSTOMER_A | consumed | 5ae266152ac2f138… | True | True
+
+## leads created from those actions
+id | company_name | contact_email | requested_by_customer_id | source_action_id | workflow_execution_id
+d88c072e-568b-4063-80a8-b4cfc3184141 | Asesoria Ejemplo (synthetic) | luis@example.test | CUSTOMER_A | b3f19b74-5982-4cc2-b980-821953cb5548 | fake-exec-1
+
+## service_credentials (no raw token stored)
+name | scope | token_sha256_prefix
+n8n-lead-writer | lead_write | 0059de3f5558…
+
+## schema version
+max
+0006_leads
+
+## audit lines (nexo.audit) for this scenario
+{"ts": "2026-10-06T22:30:33.044+00:00", "request_id": "1c9ccc8a-1441-49c3-a65d-47bd9932884f", "conversation_id": "conv-evidence-lead", "method": "POST", "route": "/leads/prepare", "status": 201, "duration_ms": 103.0, "customer_id": "CUSTOMER_A", "action": "lead_prepare", "pending_action_id": "fe972b8f-29be-4180-a040-899f73ed1352", "result": "prepared"}
+{"ts": "2026-10-06T22:30:33.133+00:00", "request_id": "df98a855-9c16-4154-adce-4592084e1fa0", "conversation_id": "conv-evidence-lead", "method": "POST", "route": "/leads/prepare", "status": 201, "duration_ms": 86.0, "customer_id": "CUSTOMER_A", "action": "lead_prepare", "pending_action_id": "b3f19b74-5982-4cc2-b980-821953cb5548", "result": "prepared"}
+{"ts": "2026-10-06T22:30:33.217+00:00", "request_id": "a12c1caa-8cdb-4a68-8e1f-44e854895c7d", "conversation_id": "conv-evidence-lead", "method": "POST", "route": "/leads/confirm", "status": 409, "duration_ms": 83.0, "customer_id": "CUSTOMER_A", "action": "lead_confirm", "pending_action_id": "fe972b8f-29be-4180-a040-899f73ed1352", "idempotency_key_fp": "0ccbb3e5468a", "confirmation_result": "confirmation_invalid", "idempotency": null, "result": "rejected"}
+{"ts": "2026-10-06T22:30:33.539+00:00", "request_id": "req-evidence-lead", "conversation_id": null, "method": "POST", "route": "/internal/leads", "status": 201, "duration_ms": 88.7, "service": "n8n-lead-writer", "action": "lead_write", "pending_action_id": "b3f19b74-5982-4cc2-b980-821953cb5548", "workflow_execution_id": "fake-exec-1", "idempotency_key_fp": "f1636976cd19", "lead_id": "d88c072e-568b-4063-80a8-b4cfc3184141", "idempotency": "created", "result": "success"}
+{"ts": "2026-10-06T22:30:33.578+00:00", "request_id": "req-evidence-lead", "conversation_id": "conv-evidence-lead", "method": "POST", "route": "/leads/confirm", "status": 201, "duration_ms": 359.7, "customer_id": "CUSTOMER_A", "action": "lead_confirm", "pending_action_id": "b3f19b74-5982-4cc2-b980-821953cb5548", "idempotency_key_fp": "f1636976cd19", "n8n_status": 201, "lead_id": "d88c072e-568b-4063-80a8-b4cfc3184141", "workflow_execution_id": "fake-exec-1", "confirmation_result": "confirmed", "idempotency": "created", "result": "success"}
+{"ts": "2026-10-06T22:30:33.776+00:00", "request_id": "218d85b4-300e-43d9-b72c-dadf23b82b36", "conversation_id": "conv-evidence-lead", "method": "POST", "route": "/leads/confirm", "status": 201, "duration_ms": 196.1, "customer_id": "CUSTOMER_A", "action": "lead_confirm", "pending_action_id": "b3f19b74-5982-4cc2-b980-821953cb5548", "idempotency_key_fp": "f1636976cd19", "lead_id": "d88c072e-568b-4063-80a8-b4cfc3184141", "confirmation_result": "replayed_local", "idempotency": "replay", "result": "success"}
+{"ts": "2026-10-06T22:30:33.861+00:00", "request_id": "8576c557-4d5e-4874-bf35-f65f6e5165cb", "conversation_id": "conv-evidence-lead", "method": "POST", "route": "/leads/confirm", "status": 409, "duration_ms": 83.1, "customer_id": "CUSTOMER_A", "action": "lead_confirm", "pending_action_id": "b3f19b74-5982-4cc2-b980-821953cb5548", "idempotency_key_fp": "387451310a9a", "confirmation_result": "confirmation_already_used", "idempotency": null, "result": "rejected"}
+{"ts": "2026-10-06T22:30:33.904+00:00", "request_id": "55353ae6-5252-4187-87d1-4a2b80960f7e", "conversation_id": null, "method": "POST", "route": "/internal/leads", "status": 401, "duration_ms": 41.0, "result": "unauthenticated"}

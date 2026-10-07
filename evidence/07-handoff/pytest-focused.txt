@@ -1,0 +1,50 @@
+# APP-03A focused tests (sanitized). 2026-10-06, Windows 11, Python 3.12.10 (.venv), throwaway PostgreSQL 17.11 per session (random port/password/tokens, never in the repo).
+# Command: .venv\Scripts\python.exe -m pytest -v -p no:cacheprovider tests/test_handoffs.py
+
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Scripts\python.exe
+rootdir: C:\Users\User\Desktop\nexo-ai-service-agent
+configfile: pytest.ini
+plugins: anyio-4.15.1
+collecting ... collected 32 items
+
+tests/test_handoffs.py::test_valid_handoff_persists_pending_for_authenticated_customer[critical_incident] PASSED [  3%]
+tests/test_handoffs.py::test_valid_handoff_persists_pending_for_authenticated_customer[human_requested] PASSED [  6%]
+tests/test_handoffs.py::test_valid_handoff_persists_pending_for_authenticated_customer[unsafe_to_resolve] PASSED [  9%]
+tests/test_handoffs.py::test_spoofed_customer_id_cannot_override_auth PASSED [ 12%]
+tests/test_handoffs.py::test_status_cannot_be_set_by_client PASSED       [ 15%]
+tests/test_handoffs.py::test_missing_or_invalid_auth_is_rejected[headers0] PASSED [ 18%]
+tests/test_handoffs.py::test_missing_or_invalid_auth_is_rejected[headers1] PASSED [ 21%]
+tests/test_handoffs.py::test_missing_or_invalid_auth_is_rejected[headers2] PASSED [ 25%]
+tests/test_handoffs.py::test_invalid_fields_are_rejected[bad0] PASSED    [ 28%]
+tests/test_handoffs.py::test_invalid_fields_are_rejected[bad1] PASSED    [ 31%]
+tests/test_handoffs.py::test_invalid_fields_are_rejected[bad2] PASSED    [ 34%]
+tests/test_handoffs.py::test_invalid_fields_are_rejected[bad3] PASSED    [ 37%]
+tests/test_handoffs.py::test_invalid_fields_are_rejected[bad4] PASSED    [ 40%]
+tests/test_handoffs.py::test_invalid_fields_are_rejected[bad5] PASSED    [ 43%]
+tests/test_handoffs.py::test_conversation_header_must_match_body PASSED  [ 46%]
+tests/test_handoffs.py::test_same_key_same_request_replays_without_duplicate PASSED [ 50%]
+tests/test_handoffs.py::test_same_key_different_request_conflicts[change0] PASSED [ 53%]
+tests/test_handoffs.py::test_same_key_different_request_conflicts[change1] PASSED [ 56%]
+tests/test_handoffs.py::test_same_key_different_request_conflicts[change2] PASSED [ 59%]
+tests/test_handoffs.py::test_keys_are_scoped_per_customer PASSED         [ 62%]
+tests/test_handoffs.py::test_concurrent_same_key_creates_one_handoff PASSED [ 65%]
+tests/test_handoffs.py::test_retry_after_lost_response_returns_same_handoff PASSED [ 68%]
+tests/test_handoffs.py::test_missing_or_invalid_idempotency_key_is_rejected[None] PASSED [ 71%]
+tests/test_handoffs.py::test_missing_or_invalid_idempotency_key_is_rejected[] PASSED [ 75%]
+tests/test_handoffs.py::test_missing_or_invalid_idempotency_key_is_rejected[has space] PASSED [ 78%]
+tests/test_handoffs.py::test_missing_or_invalid_idempotency_key_is_rejected[xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx] PASSED [ 81%]
+tests/test_handoffs.py::test_missing_or_invalid_idempotency_key_is_rejected[bad/char] PASSED [ 84%]
+tests/test_handoffs.py::test_database_unavailable_never_reports_success PASSED [ 87%]
+tests/test_handoffs.py::test_failure_inside_transaction_leaves_no_handoff PASSED [ 90%]
+tests/test_handoffs.py::test_audit_log_has_ids_and_no_secrets PASSED     [ 93%]
+tests/test_handoffs.py::test_response_never_claims_a_human_is_attending PASSED [ 96%]
+tests/test_handoffs.py::test_forbidden_claims_detector_works PASSED      [100%]
+
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 32 passed, 1 warning in 16.83s ========================

@@ -1,0 +1,468 @@
+# FOUNDATION-02 — VM runtime validation log (sanitized)
+# Source: ssh -p 9922 user@<VM> "$(cat run.sh)" < foundation.bundle (owner-run, one SSH password typed at prompt, not captured)
+# Captured: 2026-10-06 12:54-12:56 UTC. DB password generated on VM, never printed; resolved compose config redacted;
+# VM-side check: 0 occurrences of the generated password in the full log. Sanitization here: CRs removed only.
+
+
+===== 0. PRE-CHECKS =====
+pre-checks passed (no existing dir/project/volume, port 8000 free)
+$ date -u
+mar 06 oct 2026 12:54:36 UTC
+$ docker system df
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          0         0         0B        0B
+Containers      0         0         0B        0B
+Local Volumes   0         0         0B        0B
+Build Cache     0         0         0B        0B
+
+===== 1. CHECKOUT EXACT COMMIT =====
+(exit 1)
+$ git clone -q /home/user/nexo-f02/foundation.bundle /home/user/nexo-f02/repo
+warning: remote HEAD refers to nonexistent ref, unable to checkout
+VM checkout HEAD: 59264698b854ddcd7e58ffb8168d68f60766bd28
+CHECK PASS: checked-out commit is 59264698b854ddcd7e58ffb8168d68f60766bd28
+CHECK PASS: working tree clean
+
+===== 2. VM-LOCAL .env (generated; values never printed) =====
+$ stat -c %A %U %n .env
+-rw------- user .env
+.env variable names: POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD BACKEND_PORT 
+CHECK PASS: .env ignored by git
+
+===== 3. docker compose config =====
+$ docker compose config --quiet
+compose config: VALID
+CHECK PASS: docker compose config succeeds
+--- resolved config (POSTGRES_PASSWORD redacted):
+name: nexo
+services:
+  backend:
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: nexo
+      POSTGRES_HOST: db
+      POSTGRES_PASSWORD: <REDACTED>
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: nexo
+    image: nexo-backend:0.1.0
+    networks:
+      internal: null
+    build:
+      context: /home/user/nexo-f02/repo/src/backend
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+        required: true
+    ports:
+      - mode: ingress
+        host_ip: 127.0.0.1
+        target: 8000
+        published: "8000"
+        protocol: tcp
+  db:
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: nexo
+      POSTGRES_PASSWORD: <REDACTED>
+      POSTGRES_USER: nexo
+    image: pgvector/pgvector:0.8.7-pg17-bookworm
+    networks:
+      internal: null
+    volumes:
+      - type: volume
+        source: db_data
+        target: /var/lib/postgresql/data
+        volume: {}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      timeout: 5s
+      interval: 10s
+      retries: 5
+      start_period: 20s
+networks:
+  internal:
+    name: nexo_internal
+volumes:
+  db_data:
+    name: nexo_db_data
+
+===== 4. BUILD BACKEND IMAGE =====
+#9 2.573 Downloading click-8.5.0-py3-none-any.whl (125 kB)
+#9 2.582 Downloading h11-0.16.0-py3-none-any.whl (37 kB)
+#9 2.591 Downloading opentelemetry_api-1.45.0-py3-none-any.whl (60 kB)
+#9 2.601 Downloading pydantic-2.13.5-py3-none-any.whl (472 kB)
+#9 2.618 Downloading pydantic_core-2.46.5-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.1 MB)
+#9 2.637    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 117.6 MB/s eta 0:00:00
+#9 2.646 Downloading starlette-1.7.0-py3-none-any.whl (78 kB)
+#9 2.655 Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+#9 2.664 Downloading typing_inspection-0.4.4-py3-none-any.whl (14 kB)
+#9 2.673 Downloading annotated_types-0.8.0-py3-none-any.whl (13 kB)
+#9 2.681 Downloading anyio-4.15.1-py3-none-any.whl (132 kB)
+#9 2.690 Downloading idna-3.20-py3-none-any.whl (69 kB)
+#9 2.728 Installing collected packages: typing-extensions, idna, h11, click, annotated-types, annotated-doc, uvicorn, typing-inspection, pydantic-core, opentelemetry-api, anyio, starlette, pydantic, fastapi
+#9 3.713 Successfully installed annotated-doc-0.0.5 annotated-types-0.8.0 anyio-4.15.1 click-8.5.0 fastapi-0.142.2 h11-0.16.0 idna-3.20 opentelemetry-api-1.45.0 pydantic-2.13.5 pydantic-core-2.46.5 starlette-1.7.0 typing-extensions-4.16.0 typing-inspection-0.4.4 uvicorn-0.54.0
+#9 3.714 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+#9 DONE 3.9s
+
+#10 [5/6] COPY app ./app
+#10 DONE 0.1s
+
+#11 [6/6] RUN useradd --system --uid 10001 --no-create-home appuser
+#11 0.210 useradd warning: appuser's uid 10001 is greater than SYS_UID_MAX 999
+#11 DONE 0.3s
+
+#12 exporting to image
+#12 exporting layers
+#12 exporting layers 0.9s done
+#12 exporting manifest sha256:bf157cf759576b019703b9d44602814ee549a543eb7fbcc7db16387cdc392e38 0.0s done
+#12 exporting config sha256:e11351ae85761f51a6e7abac298b84c14f6772e390202716cdf786879faf4018 0.0s done
+#12 exporting attestation manifest sha256:c65cb23565fe1c44f9b339617d78d77e4fa5f6776889c690f9e352d9ce50cf77 0.1s done
+#12 exporting manifest list sha256:43c6173cb52621c2393ce7dcf93d9df02c2f257b26078be32cb686c925db3c20
+#12 exporting manifest list sha256:43c6173cb52621c2393ce7dcf93d9df02c2f257b26078be32cb686c925db3c20 0.0s done
+#12 naming to docker.io/library/nexo-backend:0.1.0 done
+#12 unpacking to docker.io/library/nexo-backend:0.1.0
+#12 unpacking to docker.io/library/nexo-backend:0.1.0 1.7s done
+#12 DONE 2.8s
+
+#13 resolving provenance for metadata file
+#13 DONE 0.0s
+ Image nexo-backend:0.1.0 Built 
+CHECK PASS: backend image built
+$ docker image ls --format {{.Repository}}:{{.Tag}} {{.ID}} {{.Size}}
+nexo-backend:0.1.0 43c6173cb526 221MB
+
+===== 5. START STACK (backend + db, wait for healthy) =====
+$ docker compose up -d --wait --wait-timeout 180
+ Image pgvector/pgvector:0.8.7-pg17-bookworm Pulling 
+ e1eef2f0f6c0 Pulling fs layer 0B
+ 8bd8ce8492d5 Pulling fs layer 0B
+ 774043ccc8cc Pulling fs layer 0B
+ f4baa57a3cc7 Pulling fs layer 0B
+ dce7e4753c95 Pulling fs layer 0B
+ 55601d7a9d50 Pulling fs layer 0B
+ 6cb8fb654a8d Pulling fs layer 0B
+ 7aa71304d2ca Pulling fs layer 0B
+ c0ca64f2011e Pulling fs layer 0B
+ 8eaf27f6576d Pulling fs layer 0B
+ 3393b06e3522 Pulling fs layer 0B
+ 2049766aed7c Pulling fs layer 0B
+ 89e6130c295b Pulling fs layer 0B
+ ee67d2d59980 Pulling fs layer 0B
+ c70c031f679d Pulling fs layer 0B
+ 29edd5ac10d9 Pulling fs layer 0B
+ 5d672a3ccfa8 Downloading 2.038kB
+ 5d672a3ccfa8 Downloading 2.038kB
+ e1eef2f0f6c0 Downloading 1.049MB
+ 774043ccc8cc Downloading 5.243MB
+ dce7e4753c95 Downloading 1.098MB
+ 5d672a3ccfa8 Download complete 0B
+ 774043ccc8cc Downloading 8.389MB
+ e1eef2f0f6c0 Download complete 0B
+ f4baa57a3cc7 Downloading 1.167kB
+ 774043ccc8cc Downloading 13.63MB
+ dce7e4753c95 Download complete 0B
+ 8bd8ce8492d5 Download complete 0B
+ f4baa57a3cc7 Download complete 0B
+ 774043ccc8cc Downloading 19.92MB
+ 8eaf27f6576d Download complete 0B
+ 774043ccc8cc Downloading 25.17MB
+ 774043ccc8cc Download complete 0B
+ 6cb8fb654a8d Downloading 3.146MB
+ 7aa71304d2ca Downloading 167B
+ 55601d7a9d50 Download complete 0B
+ 774043ccc8cc Extracting 1B
+ 6cb8fb654a8d Downloading 8.389MB
+ 7aa71304d2ca Download complete 0B
+ c0ca64f2011e Download complete 0B
+ 774043ccc8cc Extracting 1B
+ 29edd5ac10d9 Download complete 0B
+ 6cb8fb654a8d Downloading 12.58MB
+ 2049766aed7c Downloading 1.049MB
+ 774043ccc8cc Extracting 1B
+ 2049766aed7c Download complete 0B
+ 89e6130c295b Download complete 0B
+ 6cb8fb654a8d Downloading 16.78MB
+ 774043ccc8cc Extracting 1B
+ 6cb8fb654a8d Downloading 20.97MB
+ 3393b06e3522 Downloading 2.097MB
+ ee67d2d59980 Download complete 0B
+ 774043ccc8cc Extracting 1B
+ 6cb8fb654a8d Downloading 24.12MB
+ 3393b06e3522 Downloading 6.291MB
+ c70c031f679d Download complete 0B
+ 774043ccc8cc Extracting 1B
+ 6cb8fb654a8d Downloading 27.26MB
+ 3393b06e3522 Download complete 0B
+ 774043ccc8cc Extracting 1B
+ 6cb8fb654a8d Downloading 32.51MB
+ 774043ccc8cc Extracting 1B
+ 6cb8fb654a8d Downloading 36.7MB
+ 774043ccc8cc Extracting 1B
+ 6cb8fb654a8d Downloading 41.94MB
+ 774043ccc8cc Extracting 1B
+ 6cb8fb654a8d Downloading 47.19MB
+ 774043ccc8cc Extracting 2B
+ 6cb8fb654a8d Downloading 53.48MB
+ 774043ccc8cc Extracting 2B
+ 6cb8fb654a8d Downloading 57.67MB
+ 774043ccc8cc Extracting 2B
+ 6cb8fb654a8d Downloading 62.91MB
+ 774043ccc8cc Extracting 2B
+ 6cb8fb654a8d Downloading 68.16MB
+ 774043ccc8cc Extracting 2B
+ 6cb8fb654a8d Downloading 73.4MB
+ 774043ccc8cc Extracting 2B
+ 6cb8fb654a8d Downloading 77.59MB
+ 774043ccc8cc Extracting 2B
+ 6cb8fb654a8d Downloading 82.84MB
+ 774043ccc8cc Pull complete 0B
+ 6cb8fb654a8d Downloading 89.13MB
+ dce7e4753c95 Extracting 1B
+ f4baa57a3cc7 Pull complete 0B
+ 6cb8fb654a8d Downloading 93.32MB
+ dce7e4753c95 Extracting 1B
+ 6cb8fb654a8d Downloading 97.52MB
+ dce7e4753c95 Extracting 1B
+ 6cb8fb654a8d Downloading 102.8MB
+ dce7e4753c95 Pull complete 0B
+ 55601d7a9d50 Extracting 1B
+ 6cb8fb654a8d Downloading 108MB
+ 55601d7a9d50 Pull complete 0B
+ 3393b06e3522 Extracting 1B
+ 6cb8fb654a8d Download complete 0B
+ 3393b06e3522 Extracting 1B
+ 3393b06e3522 Extracting 1B
+ 3393b06e3522 Pull complete 0B
+ 8bd8ce8492d5 Pull complete 0B
+ 2049766aed7c Pull complete 0B
+ 89e6130c295b Pull complete 0B
+ 6cb8fb654a8d Extracting 1B
+ 6cb8fb654a8d Extracting 1B
+ 6cb8fb654a8d Extracting 1B
+ 6cb8fb654a8d Extracting 1B
+ 6cb8fb654a8d Extracting 1B
+ 6cb8fb654a8d Extracting 1B
+ 6cb8fb654a8d Extracting 1B
+ 6cb8fb654a8d Extracting 1B
+ 6cb8fb654a8d Extracting 1B
+ 6cb8fb654a8d Extracting 1B
+ 6cb8fb654a8d Extracting 1B
+ 6cb8fb654a8d Extracting 2B
+ 6cb8fb654a8d Extracting 2B
+ 6cb8fb654a8d Extracting 2B
+ 6cb8fb654a8d Extracting 2B
+ 6cb8fb654a8d Extracting 2B
+ 6cb8fb654a8d Extracting 2B
+ 6cb8fb654a8d Extracting 2B
+ 6cb8fb654a8d Extracting 2B
+ 6cb8fb654a8d Extracting 2B
+ 6cb8fb654a8d Extracting 2B
+ 6cb8fb654a8d Extracting 3B
+ 6cb8fb654a8d Extracting 3B
+ 6cb8fb654a8d Extracting 3B
+ 6cb8fb654a8d Extracting 3B
+ c0ca64f2011e Pull complete 0B
+ 6cb8fb654a8d Pull complete 0B
+ 8eaf27f6576d Pull complete 0B
+ 7aa71304d2ca Pull complete 0B
+ 29edd5ac10d9 Extracting 1B
+ ee67d2d59980 Pull complete 0B
+ c70c031f679d Pull complete 0B
+ e1eef2f0f6c0 Extracting 1B
+ 29edd5ac10d9 Pull complete 0B
+ e1eef2f0f6c0 Pull complete 0B
+ Image pgvector/pgvector:0.8.7-pg17-bookworm Pulled 
+ Network nexo_internal Creating 
+ Network nexo_internal Creating 
+ Volume nexo_db_data Creating 
+ Volume nexo_db_data Creating 
+ Volume nexo_db_data Created 
+ Volume nexo_db_data Created 
+ Network nexo_internal Created 
+ Network nexo_internal Created 
+ Container nexo-db-1 Creating 
+ Container nexo-db-1 Created 
+ Container nexo-backend-1 Creating 
+ Container nexo-backend-1 Created 
+ Container nexo-db-1 Starting 
+ Container nexo-db-1 Started 
+ Container nexo-db-1 Waiting 
+ Container nexo-db-1 Healthy 
+ Container nexo-backend-1 Starting 
+ Container nexo-backend-1 Started 
+ Container nexo-db-1 Waiting 
+ Container nexo-backend-1 Waiting 
+ Container nexo-db-1 Healthy 
+ Container nexo-backend-1 Healthy 
+$ docker compose ps --format table {{.Service}}\t{{.Name}}\t{{.Status}}\t{{.Ports}}
+SERVICE   NAME             STATUS                    PORTS
+backend   nexo-backend-1   Up 5 seconds (healthy)    127.0.0.1:8000->8000/tcp
+db        nexo-db-1        Up 11 seconds (healthy)   5432/tcp
+db health: healthy / backend health: healthy
+CHECK PASS: db container healthy
+CHECK PASS: backend container healthy
+
+===== 6. /health FROM VM HOST =====
+HTTP 200 body={"status":"ok"}
+CHECK PASS: /health HTTP 200
+CHECK PASS: /health body exactly {"status":"ok"}
+
+===== 7. PORTS AND NETWORK =====
+$ docker port ef0f1a8a934226967c942f497dd3dd01039df5b82a119db06c3a0540eda88f7d
+(empty above = db has no published port)
+$ docker port a01f06ac0a3f9e223931fa0e28604367a10ee1a5baed9157cd6e0a06b1aeed24
+8000/tcp -> 127.0.0.1:8000
+$ ss -tlnH
+LISTEN 0      4096       127.0.0.1:8000 0.0.0.0:*
+LISTEN 0      4096         0.0.0.0:9922 0.0.0.0:*
+LISTEN 0      4096      127.0.0.54:53   0.0.0.0:*
+LISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*
+LISTEN 0      4096            [::]:9922    [::]:*
+CHECK PASS: no host listener on 5432
+CHECK PASS: backend bound only to 127.0.0.1:8000
+CHECK PASS: public listeners unchanged (only :9922)
+$ docker network inspect nexo_internal --format name={{.Name}} driver={{.Driver}} internal={{.Internal}}
+name=nexo_internal driver=bridge internal=false
+CHECK PASS: network nexo_internal is not internal-only (egress possible)
+
+===== 8. SERVICE-TO-SERVICE COMMUNICATION =====
+$ docker compose exec -T backend python -c import socket; a=socket.getaddrinfo('db',5432)[0][4][0]; s=socket.create_connection(('db',5432),3); print('backend -> db:5432 TCP OK, db resolves to', a); s.close()
+backend -> db:5432 TCP OK, db resolves to 172.18.0.2
+CHECK PASS: backend reaches db:5432 over Docker DNS
+--- authenticated SQL login over the network (password via --env-file, not command line):
+$ docker run --rm --network nexo_internal --env-file .env pgvector/pgvector:0.8.7-pg17-bookworm sh -c PGPASSWORD="$POSTGRES_PASSWORD" psql -X -t -A -h db -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "select 'network login ok, server ' || current_setting('server_version')"
+network login ok, server 17.11 (Debian 17.11-1.pgdg12+2)
+
+===== 9. EGRESS READINESS (no API key, no LLM call) =====
+$ docker compose exec -T backend python -c import socket,urllib.request; print('dns openrouter.ai ->', socket.getaddrinfo('openrouter.ai',443)[0][4][0]); r=urllib.request.urlopen('https://openrouter.ai/api/v1/models', timeout=15); print('HTTPS GET /api/v1/models (public, unauthenticated) ->', r.status)
+dns openrouter.ai -> 104.18.3.115
+HTTPS GET /api/v1/models (public, unauthenticated) -> 200
+
+===== 10. PERSISTENCE — A/B: create and read marker =====
+marker: f02-20261006T125509Z-187
+1|f02-20261006T125509Z-187|2026-10-06 12:55:09.928353+00
+db container before: ef0f1a8a9342  volume nexo_db_data created: 2026-10-06T12:54:56Z
+$ docker inspect -f {{range .Mounts}}{{.Type}} {{.Name}} -> {{.Destination}}{{println}}{{end}} ef0f1a8a934226967c942f497dd3dd01039df5b82a119db06c3a0540eda88f7d
+volume nexo_db_data -> /var/lib/postgresql/data
+
+
+===== 10. PERSISTENCE — C: remove containers + network (volume kept), recreate =====
+$ docker compose down
+ Container nexo-backend-1 Stopping 
+ Container nexo-backend-1 Stopped 
+ Container nexo-backend-1 Removing 
+ Container nexo-backend-1 Removed 
+ Container nexo-db-1 Stopping 
+ Container nexo-db-1 Stopped 
+ Container nexo-db-1 Removing 
+ Container nexo-db-1 Removed 
+ Network nexo_internal Removing 
+ Network nexo_internal Removed 
+$ docker compose ps -a
+NAME      IMAGE     COMMAND   SERVICE   CREATED   STATUS    PORTS
+$ docker volume ls --filter name=nexo_db_data
+DRIVER    VOLUME NAME
+local     nexo_db_data
+CHECK PASS: no nexo containers remain after down
+CHECK PASS: volume nexo_db_data still exists after down
+$ docker compose up -d --wait --wait-timeout 180
+ Network nexo_internal Creating 
+ Network nexo_internal Creating 
+ Network nexo_internal Created 
+ Network nexo_internal Created 
+ Container nexo-db-1 Creating 
+ Container nexo-db-1 Created 
+ Container nexo-backend-1 Creating 
+ Container nexo-backend-1 Created 
+ Container nexo-db-1 Starting 
+ Container nexo-db-1 Started 
+ Container nexo-db-1 Waiting 
+ Container nexo-db-1 Healthy 
+ Container nexo-backend-1 Starting 
+ Container nexo-backend-1 Started 
+ Container nexo-db-1 Waiting 
+ Container nexo-backend-1 Waiting 
+ Container nexo-db-1 Healthy 
+ Container nexo-backend-1 Healthy 
+db container after:  0445692978c7  volume created: 2026-10-06T12:54:56Z
+CHECK PASS: db container was recreated (different ID)
+CHECK PASS: same volume instance (CreatedAt unchanged)
+
+===== 10. PERSISTENCE — D: marker after recreation =====
+marker read after recreate: f02-20261006T125509Z-187
+CHECK PASS: marker survived container recreation
+CHECK PASS: /health still 200 after recreate
+
+===== 11. RESULT =====
+FOUNDATION-02 RUNTIME: ALL CHECKS PASS
+
+===== 12. CLEANUP =====
+marker table dropped
+t
+$ docker compose down -v
+ Container nexo-backend-1 Stopping 
+ Container nexo-backend-1 Stopped 
+ Container nexo-backend-1 Removing 
+ Container nexo-backend-1 Removed 
+ Container nexo-db-1 Stopping 
+ Container nexo-db-1 Stopped 
+ Container nexo-db-1 Removing 
+ Container nexo-db-1 Removed 
+ Network nexo_internal Removing 
+ Volume nexo_db_data Removing 
+ Volume nexo_db_data Removed 
+ Network nexo_internal Removed 
+$ docker image rm nexo-backend:0.1.0 pgvector/pgvector:0.8.7-pg17-bookworm python:3.12.15-slim-bookworm
+Untagged: nexo-backend:0.1.0
+Deleted: sha256:43c6173cb52621c2393ce7dcf93d9df02c2f257b26078be32cb686c925db3c20
+Untagged: pgvector/pgvector:0.8.7-pg17-bookworm
+Deleted: sha256:ac08538c6f8b9904c33c8224c5e5706dbe760aca29db1d096972b4052c22a75d
+Error response from daemon: No such image: python:3.12.15-slim-bookworm
+(exit 1)
+$ docker builder prune -f
+ID						RECLAIMABLE	SIZE		LAST ACCESSED
+00j4m7eesgu7e2ltes7wyixsw               	true 		46.17kB   	35 seconds ago
+ltwed9immlgbfucww68bha6zg*              	true 	8.192kB   	35 seconds ago
+v1gy13qj4iwllmdbpl664z65u*              	true 	20.48kB   	35 seconds ago
+9d7wovmk7s6rpvqtyjm2tucrr*              	true 	8.192kB   	35 seconds ago
+bepjm311re81u1o9e6gpdv5u5               	true 	21.56kB   	35 seconds ago
+opssn4hh9qy8y8sc1magkw50p               	true 	23.52MB   	35 seconds ago
+n51f2g1bi0zt3w8pedc6wbabd               	true 	12.46kB   	35 seconds ago
+1ql35dujf75255yjg69yahqc6               	true 	4.128kB   	35 seconds ago
+rlk5bayjed38jrdg2j8y20sk0               	true 	16.63kB   	35 seconds ago
+ott1gzo9zheefqrwkuxglp9u6               	true 	70.49MB   	45 seconds ago
+djfb63dvs2u0zj4j10h9mz3aa               	true 	13.04MB   	45 seconds ago
+yhrv99ujcmrf4xpypg6hfvzdj               	true 	113.5MB   	45 seconds ago
+Total:	220.7MB
+
+===== 13. SECRET-IN-LOG CHECK (value never printed) =====
+occurrences of generated DB password in run log: 0
+
+===== 14. FINAL STATE =====
+$ docker ps -a
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+$ docker images
+IMAGE   ID             DISK USAGE   CONTENT SIZE   EXTRA
+$ docker volume ls
+DRIVER    VOLUME NAME
+$ docker network ls
+NETWORK ID     NAME      DRIVER    SCOPE
+6381b14192e7   bridge    bridge    local
+5885cec536ca   host      host      local
+447cca8214c8   none      null      local
+$ docker system df
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          0         0         0B        0B
+Containers      0         0         0B        0B
+Local Volumes   0         0         0B        0B
+Build Cache     0         0         0B        0B
+$ ss -tlnH
+LISTEN 0      4096         0.0.0.0:9922 0.0.0.0:*
+LISTEN 0      4096      127.0.0.54:53   0.0.0.0:*
+LISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*
+LISTEN 0      4096            [::]:9922    [::]:*
+$ test ! -e /home/user/nexo-f02
+temporary directory removed (incl. .env)

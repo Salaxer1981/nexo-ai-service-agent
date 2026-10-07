@@ -1,0 +1,64 @@
+# APP-03B focused lead tests (local; Windows 11, Python 3.12.10, throwaway PostgreSQL 17.11; n8n hop = FakeN8n, NOT n8n)
+
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Scripts\python.exe
+rootdir: C:\Users\User\Desktop\nexo-ai-service-agent
+configfile: pytest.ini
+plugins: anyio-4.15.1
+collecting ... collected 47 items
+
+tests/test_leads.py::test_prepare_creates_no_lead_and_binds_exact_data PASSED [  2%]
+tests/test_leads.py::test_prepare_rejects_invalid_or_unknown_fields[bad0] PASSED [  4%]
+tests/test_leads.py::test_prepare_rejects_invalid_or_unknown_fields[bad1] PASSED [  6%]
+tests/test_leads.py::test_prepare_rejects_invalid_or_unknown_fields[bad2] PASSED [  8%]
+tests/test_leads.py::test_prepare_rejects_invalid_or_unknown_fields[bad3] PASSED [ 10%]
+tests/test_leads.py::test_prepare_rejects_invalid_or_unknown_fields[bad4] PASSED [ 12%]
+tests/test_leads.py::test_prepare_rejects_invalid_or_unknown_fields[bad5] PASSED [ 14%]
+tests/test_leads.py::test_prepare_rejects_invalid_or_unknown_fields[bad6] PASSED [ 17%]
+tests/test_leads.py::test_prepare_requires_auth_and_valid_conversation_header PASSED [ 19%]
+tests/test_leads.py::test_confirm_creates_lead_only_through_the_workflow PASSED [ 21%]
+tests/test_leads.py::test_same_key_replays_without_calling_n8n_again PASSED [ 23%]
+tests/test_leads.py::test_same_key_different_action_conflicts PASSED     [ 25%]
+tests/test_leads.py::test_consumed_action_with_new_key_is_rejected PASSED [ 27%]
+tests/test_leads.py::test_changing_any_field_requires_new_confirmation[company_name-Other Co (synthetic)] PASSED [ 29%]
+tests/test_leads.py::test_changing_any_field_requires_new_confirmation[contact_name-Ana (synthetic)] PASSED [ 31%]
+tests/test_leads.py::test_changing_any_field_requires_new_confirmation[contact_email-ana@example.test] PASSED [ 34%]
+tests/test_leads.py::test_changing_any_field_requires_new_confirmation[need-Synthetic: changed need] PASSED [ 36%]
+tests/test_leads.py::test_other_session_cannot_confirm_and_nothing_leaks PASSED [ 38%]
+tests/test_leads.py::test_missing_or_invalid_key_rejected_before_n8n[None] PASSED [ 40%]
+tests/test_leads.py::test_missing_or_invalid_key_rejected_before_n8n[] PASSED [ 42%]
+tests/test_leads.py::test_missing_or_invalid_key_rejected_before_n8n[has space] PASSED [ 44%]
+tests/test_leads.py::test_missing_or_invalid_key_rejected_before_n8n[xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx] PASSED [ 46%]
+tests/test_leads.py::test_expired_action_cannot_be_confirmed PASSED      [ 48%]
+tests/test_leads.py::test_failed_hop_never_reports_success_and_is_retryable[unreachable] PASSED [ 51%]
+tests/test_leads.py::test_failed_hop_never_reports_success_and_is_retryable[fail_500] PASSED [ 53%]
+tests/test_leads.py::test_failed_hop_never_reports_success_and_is_retryable[internal_unreachable] PASSED [ 55%]
+tests/test_leads.py::test_committed_but_response_lost_recovers_same_lead PASSED [ 57%]
+tests/test_leads.py::test_duplicate_workflow_delivery_creates_one_lead PASSED [ 59%]
+tests/test_leads.py::test_tampered_payload_is_refused_end_to_end PASSED  [ 61%]
+tests/test_leads.py::test_workflow_success_without_persisted_lead_is_not_success PASSED [ 63%]
+tests/test_leads.py::test_database_failure_in_lead_write_rolls_back_and_is_retryable PASSED [ 65%]
+tests/test_leads.py::test_concurrent_workflow_deliveries_create_one_lead PASSED [ 68%]
+tests/test_leads.py::test_private_write_rejects_anything_but_the_service_credential[none] PASSED [ 70%]
+tests/test_leads.py::test_private_write_rejects_anything_but_the_service_credential[customer_a] PASSED [ 72%]
+tests/test_leads.py::test_private_write_rejects_anything_but_the_service_credential[customer_b] PASSED [ 74%]
+tests/test_leads.py::test_private_write_rejects_anything_but_the_service_credential[random] PASSED [ 76%]
+tests/test_leads.py::test_service_credential_cannot_create_unconfirmed_or_altered_leads PASSED [ 78%]
+tests/test_leads.py::test_no_public_direct_lead_route PASSED             [ 80%]
+tests/test_leads.py::test_only_the_private_write_path_inserts_leads PASSED [ 82%]
+tests/test_leads.py::test_database_enforces_one_lead_per_action_and_valid_email PASSED [ 85%]
+tests/test_leads.py::test_confirm_and_private_write_are_correlated_without_secrets PASSED [ 87%]
+tests/test_lead_workflow_static.py::test_workflow_identity_and_small_node_set PASSED [ 89%]
+tests/test_lead_workflow_static.py::test_no_database_or_code_nodes PASSED [ 91%]
+tests/test_lead_workflow_static.py::test_webhook_matches_backend_dispatch_url_and_compose PASSED [ 93%]
+tests/test_lead_workflow_static.py::test_http_request_calls_the_private_lead_write_route PASSED [ 95%]
+tests/test_lead_workflow_static.py::test_credential_is_referenced_not_embedded PASSED [ 97%]
+tests/test_lead_workflow_static.py::test_flow_wiring_and_envelope_check PASSED [100%]
+
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 47 passed, 1 warning in 26.55s ========================

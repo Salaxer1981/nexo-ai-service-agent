@@ -1,0 +1,33 @@
+# APP-03A mutation checks (each mutation applied alone, tests/test_handoffs.py run, files restored byte-for-byte)
+
+## H1 request fingerprint ignored (any reuse replays): 4 failed, 28 passed, 1 warning in 17.00s
+   FAILED test_audit_log_has_ids_and_no_secrets
+   FAILED test_same_key_different_request_conflicts[change0]
+   FAILED test_same_key_different_request_conflicts[change1]
+   FAILED test_same_key_different_request_conflicts[change2]
+## H2 idempotency defeated (key made unique per call): 7 failed, 25 passed, 1 warning in 16.06s
+   FAILED test_audit_log_has_ids_and_no_secrets
+   FAILED test_concurrent_same_key_creates_one_handoff
+   FAILED test_retry_after_lost_response_returns_same_handoff
+   FAILED test_same_key_different_request_conflicts[change0]
+   FAILED test_same_key_different_request_conflicts[change1]
+   FAILED test_same_key_different_request_conflicts[change2]
+   FAILED test_same_key_same_request_replays_without_duplicate
+## H3 response falsely claims a human is attending: 1 failed, 31 passed, 1 warning in 17.20s
+   FAILED test_response_never_claims_a_human_is_attending
+## H4 owner taken from a client header instead of auth: 1 failed, 31 passed, 1 warning in 16.85s
+   FAILED test_spoofed_customer_id_cannot_override_auth
+## H5 idempotency key not required: 5 failed, 27 passed, 1 warning in 16.43s
+   FAILED test_missing_or_invalid_idempotency_key_is_rejected[None]
+   FAILED test_missing_or_invalid_idempotency_key_is_rejected[]
+   FAILED test_missing_or_invalid_idempotency_key_is_rejected[bad/char]
+   FAILED test_missing_or_invalid_idempotency_key_is_rejected[has
+   FAILED test_missing_or_invalid_idempotency_key_is_rejected[xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx]
+restored: True
+
+# Repeated runs
+focused run 1: ======================= 32 passed, 1 warning in 17.11s ========================
+focused run 2: ======================= 32 passed, 1 warning in 17.43s ========================
+focused run 3: ======================= 32 passed, 1 warning in 16.83s ========================
+full run 1: ============ 147 passed, 2 skipped, 1 warning in 62.13s (0:01:02) =============
+full run 2: ============ 147 passed, 2 skipped, 1 warning in 67.67s (0:01:07) =============

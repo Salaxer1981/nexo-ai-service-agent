@@ -1,0 +1,116 @@
+# PRE-02 step 3 — post-install verification, fresh SSH session, NO sudo (sanitized)
+# Source: ssh -p 9922 user@<VM> 'bash -s' < verify.sh (owner-run; password typed at prompt, not captured)
+# Captured: 2026-10-06. Sanitization: CRs removed; apt-cache policy version table truncated after installed entry; secret-pattern scan, no matches.
+
+
+===== A. docker --version =====
+$ docker --version
+Docker version 29.8.2, build 7fc2dff
+
+===== B. docker compose version =====
+$ docker compose version
+Docker Compose version v5.6.0
+$ docker buildx version
+github.com/docker/buildx v0.37.1 0b265a9f62db554fa9aba6dd19e1bd5704bc7d8a
+
+===== C. SERVICE STATUS =====
+$ systemctl is-active docker containerd
+active
+active
+$ systemctl is-enabled docker containerd
+enabled
+enabled
+
+===== D. docker info (no sudo) =====
+$ docker info --format ServerVersion={{.ServerVersion}} StorageDriver={{.Driver}} CgroupDriver={{.CgroupDriver}} CgroupVersion={{.CgroupVersion}} RootDir={{.DockerRootDir}} Containers={{.Containers}} Images={{.Images}}
+ServerVersion=29.8.2 StorageDriver=overlayfs CgroupDriver=systemd CgroupVersion=2 RootDir=/var/lib/docker Containers=0 Images=0
+
+===== E. GROUP MEMBERSHIP =====
+$ id
+uid=1000(user) gid=1000(user) groups=1000(user),4(adm),24(cdrom),27(sudo),30(dip),46(plugdev),101(lxd),988(docker)
+$ getent group docker
+docker:x:988:user
+
+===== F/G. DISPOSABLE TEST CONTAINER (no sudo, no ports, removed after run) =====
+$ docker run --rm hello-world
+Unable to find image 'hello-world:latest' locally
+latest: Pulling from library/hello-world
+4f55086f7dd0: Pulling fs layer
+4f55086f7dd0: Download complete
+4f55086f7dd0: Pull complete
+d5e71e642bf5: Download complete
+Digest: sha256:5e23090353324d887c48ad5e5c56d294eab81588df9605b07d1afe895f9cc8f8
+Status: Downloaded newer image for hello-world:latest
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client, which sent it
+    to your terminal.
+
+To try something more ambitious, you can run an Ubuntu container with:
+ $ docker run -it ubuntu bash
+
+Share images, automate workflows, and more with a free Docker ID:
+ https://hub.docker.com/
+
+For more examples and ideas, visit:
+ https://docs.docker.com/get-started/
+
+$ docker ps -a
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+$ docker image rm hello-world
+Untagged: hello-world:latest
+Deleted: sha256:5e23090353324d887c48ad5e5c56d294eab81588df9605b07d1afe895f9cc8f8
+$ docker images
+IMAGE   ID             DISK USAGE   CONTENT SIZE   EXTRA
+
+===== H. LISTENING PORTS =====
+$ ss -tlnH
+LISTEN 0      4096         0.0.0.0:9922 0.0.0.0:*
+LISTEN 0      4096      127.0.0.54:53   0.0.0.0:*
+LISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*
+LISTEN 0      4096            [::]:9922    [::]:*
+$ docker network ls
+NETWORK ID     NAME      DRIVER    SCOPE
+6381b14192e7   bridge    bridge    local
+5885cec536ca   host      host      local
+447cca8214c8   none      null      local
+$ docker volume ls
+DRIVER    VOLUME NAME
+
+===== I. DISK =====
+$ df -h /
+Filesystem                         Size  Used Avail Use% Mounted on
+/dev/mapper/ubuntu--vg-ubuntu--lv   47G  6,9G   38G  16% /
+$ docker system df
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          0         0         0B        0B
+Containers      0         0         0B        0B
+Local Volumes   0         0         0B        0B
+Build Cache     0         0         0B        0B
+
+===== PACKAGE SOURCE =====
+$ dpkg-query -W -f=${Package} ${Version}\n docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras
+containerd.io 2.3.6-1~ubuntu.24.04~noble
+docker-buildx-plugin 0.37.1-1~ubuntu.24.04~noble
+docker-ce 5:29.8.2-1~ubuntu.24.04~noble
+docker-ce-cli 5:29.8.2-1~ubuntu.24.04~noble
+docker-ce-rootless-extras 5:29.8.2-1~ubuntu.24.04~noble
+docker-compose-plugin 5.6.0-1~ubuntu.24.04~noble
+$ apt-cache policy docker-ce
+docker-ce:
+  Instalados: 5:29.8.2-1~ubuntu.24.04~noble
+  Candidato:  5:29.8.2-1~ubuntu.24.04~noble
+  Tabla de versión:
+ *** 5:29.8.2-1~ubuntu.24.04~noble 500
+        500 https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+        100 /var/lib/dpkg/status
+     5:29.8.1-1~ubuntu.24.04~noble 500
+     ... (older versions in Docker repo omitted)

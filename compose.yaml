@@ -1,0 +1,137 @@
+# Nexo AI Service Agent — application stack.
+# Values come from a git-ignored .env next to this file (see .env.example).
+#
+# Networks (least privilege):
+#   internal   = db + backend         (only the backend can reach PostgreSQL)
+#   automation = backend + n8n        (n8n can reach the backend API, never the database)
+#   web        = web + backend        (the evaluation client reaches only the backend; never db or n8n)
+# Host exposure: only loopback ports (Docker-published ports bypass ufw; PROJECT_STATE D-11).
+name: nexo
+
+services:
+  db:
+    # pgvector image = official PostgreSQL 17 + the pgvector extension available
+    # (not enabled yet), so RAG can be added later without replacing the database.
+    image: pgvector/pgvector:0.8.7-pg17-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - internal
+    # No `ports:` on purpose: the database is reachable only on the internal network.
+
+  backend:
+    build: ./src/backend
+    image: nexo-backend:0.1.0
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      # Synthetic assessment credentials (random, >= 32 chars); only their SHA-256 is stored.
+      AUTH_TOKEN_CUSTOMER_A: ${AUTH_TOKEN_CUSTOMER_A:?AUTH_TOKEN_CUSTOMER_A is required}
+      AUTH_TOKEN_CUSTOMER_B: ${AUTH_TOKEN_CUSTOMER_B:?AUTH_TOKEN_CUSTOMER_B is required}
+      # n8n lead-writer service credential: the backend gets ONLY its SHA-256 (the raw token lives in
+      # n8n's encrypted credential store), so the backend cannot impersonate n8n.
+      LEAD_WRITER_TOKEN_SHA256: ${LEAD_WRITER_TOKEN_SHA256:?LEAD_WRITER_TOKEN_SHA256 is required}
+      # Private webhook of the n8n lead workflow (automation network only).
+      N8N_LEAD_WEBHOOK_URL: http://n8n:5678/webhook/nexo-lead-create
+      # RAG embeddings (OpenRouter). Optional: without a key /rag/search answers 503; nothing else is affected.
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      RAG_EMBEDDING_MODEL: ${RAG_EMBEDDING_MODEL:-openai/text-embedding-3-small}
+      RAG_KNOWLEDGE_DIR: /srv/knowledge
+      # Agent chat model via OpenRouter (same key). Without a key /chat answers 503.
+      OPENROUTER_CHAT_MODEL: ${OPENROUTER_CHAT_MODEL:-x-ai/grok-4.7}
+    volumes:
+      # Versioned knowledge base, read-only: edit the files, then run `python -m app.rag_ingest`.
+      - ./knowledge:/srv/knowledge:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      # Loopback only: Docker-published ports bypass ufw (PROJECT_STATE D-11).
+      - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
+    networks:
+      - internal
+      - automation
+      - web
+
+  web:
+    # Evaluation client (UI-02): static bundle + a minimal server-side boundary (src/frontend/server/server.mjs).
+    # It proxies ONLY POST /chat and GET /health/ready and attaches the selected SYNTHETIC demo customer's Bearer token
+    # server-side; the browser never receives a credential. Identity is still resolved only by the backend.
+    build: ./src/frontend
+    image: nexo-web:0.1.0
+    restart: unless-stopped
+    environment:
+      BACKEND_URL: http://backend:8000
+      # Same synthetic credentials the backend provisions; runtime environment only (never build args or the bundle).
+      AUTH_TOKEN_CUSTOMER_A: ${AUTH_TOKEN_CUSTOMER_A:?AUTH_TOKEN_CUSTOMER_A is required}
+      AUTH_TOKEN_CUSTOMER_B: ${AUTH_TOKEN_CUSTOMER_B:?AUTH_TOKEN_CUSTOMER_B is required}
+    depends_on:
+      backend:
+        condition: service_healthy
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      # Loopback only, like every other published port; reach it through an SSH tunnel (see README).
+      - "127.0.0.1:${WEB_PORT:-8080}:8080"
+    networks:
+      - web
+
+  n8n:
+    # Official n8n image, pinned to the release tagged `stable` on 2026-10-06. Self-hosted
+    # Community Edition: no n8n Cloud account or license needed. Runs as the unprivileged `node` user.
+    image: n8nio/n8n:2.42.3
+    restart: unless-stopped
+    environment:
+      # Encrypts credentials stored by n8n. Must stay the same for the life of the n8n_data volume.
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?N8N_ENCRYPTION_KEY is required}
+      N8N_HOST: localhost
+      N8N_PORT: "5678"
+      N8N_PROTOCOL: http
+      GENERIC_TIMEZONE: Europe/Madrid
+      TZ: Europe/Madrid
+      # Minimize data sent to external services (REQ-SEC-03).
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+    volumes:
+      # n8n state (its own SQLite DB: owner account, workflows, encrypted credentials, executions).
+      - n8n_data:/home/node/.n8n
+    healthcheck:
+      # n8n's built-in liveness endpoint; uses the image's Node.js (no extra tools assumed).
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5678/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    ports:
+      # Admin UI on loopback only; reach it through an SSH tunnel (see README).
+      - "127.0.0.1:${N8N_HOST_PORT:-5678}:5678"
+    networks:
+      - automation
+
+volumes:
+  db_data:
+  n8n_data:
+
+networks:
+  internal:
+  automation:
+  web:

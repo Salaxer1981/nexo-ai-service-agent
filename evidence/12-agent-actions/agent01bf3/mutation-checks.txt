@@ -1,0 +1,22 @@
+# AGENT-01BF3 mutation checks H1-H5: foreground, sequential, byte-exact backup/restore, memory logged (local: REAL PostgreSQL 17.11 + pgvector 0.8.7; TEST-ONLY scripted model; FakeN8n = TEST stand-in, NOT n8n)
+
+Suites per mutation: f3 + f2 + f1 + test_chat_actions + test_agent (151 tests).
+
+H1 remove the row lock (no SELECT ... FOR UPDATE on the pointed action): 4 failed, 147 passed, 1 warning in 144.86s (0:02:24)
+   caught by: ['test_lead_confirm_wins_keeps_the_in_flight_pointer_and_recovers_through_n8n', 'test_lead_proposal_wins_and_api_confirm_waits_then_fails_safely', 'test_ticket_confirm_wins_and_stale_proposal_is_rejected', 'test_ticket_proposal_wins_and_api_confirm_waits_then_fails_safely']
+   restored byte-exact: True | pytest rc 1 | 146s | memory before: load 87% avail 0.8/5.8 GiB | after: load 88% avail 0.6/5.8 GiB
+H2 commit the authoritative check before prepare (no enclosing transaction): 2 failed, 149 passed, 1 warning in 145.92s (0:02:25)
+   caught by: ['test_lead_proposal_wins_and_api_confirm_waits_then_fails_safely', 'test_ticket_proposal_wins_and_api_confirm_waits_then_fails_safely']
+   restored byte-exact: True | pytest rc 1 | 147s | memory before: load 88% avail 0.6/5.8 GiB | after: load 84% avail 0.9/5.8 GiB
+H3 allow prepare after the locked row is no longer pending: 7 failed, 144 passed, 1 warning in 106.19s (0:01:46)
+   caught by: ['test_in_flight_lead_pointer_is_never_replaced_even_with_a_current_basis', 'test_lead_confirm_wins_keeps_the_in_flight_pointer_and_recovers_through_n8n', 'test_t1_ticket_commit_then_lost_response_vs_stale_model_proposal', 'test_t2_lead_confirmed_and_n8n_failure_vs_stale_model_proposal', 'test_t3_plain_api_lead_completion_vs_stale_model_proposal', 'test_t3_plain_api_ticket_completion_vs_stale_model_proposal', 'test_ticket_confirm_wins_and_stale_proposal_is_rejected']
+   restored byte-exact: True | pytest rc 1 | 108s | memory before: load 84% avail 0.9/5.8 GiB | after: load 86% avail 0.8/5.8 GiB
+H4 cancel other pending actions BEFORE validating the pointer: 1 failed, 150 passed, 1 warning in 112.62s (0:01:52)
+   caught by: ['test_cancel_with_corrupt_pointer_and_another_valid_pending_action_mutates_nothing']
+   restored byte-exact: True | pytest rc 1 | 114s | memory before: load 86% avail 0.8/5.8 GiB | after: load 88% avail 0.7/5.8 GiB
+H5 advance the revision only AFTER the cancellation mutation (lost if the chat sync then fails): 1 failed, 150 passed, 1 warning in 115.85s (0:01:55)
+   caught by: ['test_cancel_advances_revision_before_mutation_even_if_chat_sync_fails']
+   restored byte-exact: True | pytest rc 1 | 117s | memory before: load 88% avail 0.7/5.8 GiB | after: load 91% avail 0.5/5.8 GiB
+
+RESULT: H1-H5 all caught. After each batch: all sites original, no mutant residue (BF1/BF2/BF3 patterns; stale
+__pycache__ removed), 0 PostgreSQL processes, 0 temp clusters. Peak memory load observed: 91% (0.5 GiB free of 5.8).

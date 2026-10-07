@@ -1,0 +1,25 @@
+# PRE-01 OpenRouter credential validation — sanitized evidence
+# Local workstation, not the VM. Script: openrouter-check.ps1
+# Endpoint: GET https://openrouter.ai/api/v1/key (non-billable, metadata only). Models invoked: none.
+# Key source: local git-ignored .env. Key value never printed or stored here.
+
+## Attempt 1 — 2026-10-06
+http=401  RESULT: CREDENTIAL_INVALID_OR_UNREACHABLE
+.env structure: value_len=19, expected prefix sk-or-v1- absent -> placeholder/truncated value.
+
+## Attempt 2 — 2026-10-06 (owner corrected .env)
+.env structure: value_len=73, expected prefix present, line_count=1
+http=200
+limit=30
+limit_remaining=30
+limit_reset=
+usage=0
+is_free_tier=False
+is_provisioning_key=False
+models_invoked=none
+RESULT: CREDENTIAL_VALID
+Note: fields reported verbatim by provider; unit of 'limit' not stated in response (not assumed).
+Authorized models are NOT exposed by this endpoint -> OPENROUTER_MODEL_POLICY = TO_VERIFY.
+
+## VM outbound HTTPS (no key used, from preflight.txt)
+https://openrouter.ai/api/v1/models http_code=200 time=0.044535s

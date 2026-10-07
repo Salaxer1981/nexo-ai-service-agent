@@ -1,0 +1,446 @@
+# APP-03BV1 — RUN 2 (ACCEPTED): REAL n8n 2.42.3 on the VM (not FakeN8n). Sanitized.
+# Source: ssh -p 9922 user@<VM> "EXPECTED_SHA=5ce2d6e…; $(cat vm-validate.sh)" < leads.bundle (owner-run; one SSH password, not captured)
+# Captured 2026-10-07 (UTC timestamps in audit lines). All secrets generated on the VM, never printed; VM-side counts in
+# run log and container logs: 0 for DB password, both customer tokens, N8N_ENCRYPTION_KEY and the raw lead-writer token.
+# Image-pull progress lines removed; otherwise unchanged.
+
+
+===== 0. PRE-CHECKS =====
+pre-checks passed
+$ docker system df
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          0         0         0B        0B
+Containers      0         0         0B        0B
+Local Volumes   0         0         0B        0B
+Build Cache     0         0         0B        0B
+$ ss -tlnH
+LISTEN 0      4096         0.0.0.0:9922 0.0.0.0:*
+LISTEN 0      4096      127.0.0.54:53   0.0.0.0:*
+LISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*
+LISTEN 0      4096            [::]:9922    [::]:*
+
+===== 1. CHECKOUT EXACT COMMIT =====
+$ git clone -q /home/user/nexo-app03bv1/leads.bundle /home/user/nexo-app03bv1/repo
+warning: remote HEAD refers to nonexistent ref, unable to checkout
+CHECK PASS: checked-out commit is 5ce2d6ebd54e24c872087d47966a176c96abb73d
+CHECK PASS: working tree clean (no edits)
+
+===== 2. VM-LOCAL SECRETS (generated; never printed) =====
+$ stat -c %A %n .env /home/user/nexo-app03bv1/lead_writer.token /home/user/nexo-app03bv1/cred.json
+-rw------- .env
+-rw------- /home/user/nexo-app03bv1/lead_writer.token
+-rw------- /home/user/nexo-app03bv1/cred.json
+.env names: POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD AUTH_TOKEN_CUSTOMER_A AUTH_TOKEN_CUSTOMER_B N8N_ENCRYPTION_KEY LEAD_WRITER_TOKEN_SHA256 
+CHECK PASS: .env holds no raw lead-writer token (hash only)
+
+===== 3. CONFIG + BUILD + START (db, backend, n8n) =====
+CHECK PASS: docker compose config valid
+#13 resolving provenance for metadata file
+#13 DONE 0.0s
+ Image nexo-backend:0.1.0 Built 
+$ docker compose up -d --wait --wait-timeout 300
+ Image pgvector/pgvector:0.8.7-pg17-bookworm Pulling 
+ Image n8nio/n8n:2.42.3 Pulling 
+ Image pgvector/pgvector:0.8.7-pg17-bookworm Pulled 
+ Image n8nio/n8n:2.42.3 Pulled 
+ Network nexo_automation Creating 
+ Network nexo_automation Creating 
+ Network nexo_internal Creating 
+ Network nexo_internal Creating 
+ Volume nexo_db_data Creating 
+ Volume nexo_db_data Creating 
+ Volume nexo_n8n_data Creating 
+ Volume nexo_n8n_data Creating 
+ Volume nexo_n8n_data Created 
+ Volume nexo_n8n_data Created 
+ Volume nexo_db_data Created 
+ Volume nexo_db_data Created 
+ Network nexo_automation Created 
+ Network nexo_automation Created 
+ Container nexo-n8n-1 Creating 
+ Network nexo_internal Created 
+ Network nexo_internal Created 
+ Container nexo-db-1 Creating 
+ Container nexo-db-1 Created 
+ Container nexo-backend-1 Creating 
+ Container nexo-n8n-1 Created 
+ Container nexo-backend-1 Created 
+ Container nexo-db-1 Starting 
+ Container nexo-n8n-1 Starting 
+ Container nexo-db-1 Started 
+ Container nexo-db-1 Waiting 
+ Container nexo-n8n-1 Started 
+ Container nexo-db-1 Healthy 
+ Container nexo-backend-1 Starting 
+ Container nexo-backend-1 Started 
+ Container nexo-backend-1 Waiting 
+ Container nexo-n8n-1 Waiting 
+ Container nexo-db-1 Waiting 
+ Container nexo-n8n-1 Healthy 
+ Container nexo-db-1 Healthy 
+ Container nexo-backend-1 Healthy 
+$ docker compose ps --format table {{.Service}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}
+SERVICE   IMAGE                                   STATUS                    PORTS
+backend   nexo-backend:0.1.0                      Up 5 seconds (healthy)    127.0.0.1:8000->8000/tcp
+db        pgvector/pgvector:0.8.7-pg17-bookworm   Up 11 seconds (healthy)   5432/tcp
+n8n       n8nio/n8n:2.42.3                        Up 11 seconds (healthy)   127.0.0.1:5678->5678/tcp
+CHECK PASS: db healthy
+CHECK PASS: backend healthy
+CHECK PASS: n8n healthy
+CHECK PASS: backend /health/ready 200
+CHECK PASS: n8n /healthz 200
+$ n8n_cli --version
+2.42.3
+--- backend startup:
+migrations applied: ['0001_initial_schema', '0002_synthetic_seed', '0003_priority_and_ticket_confirmation', '0004_one_pending_action_per_group', '0005_handoffs', '0006_leads']; schema version: 0006_leads
+synthetic credentials provisioned for: CUSTOMER_A, CUSTOMER_B
+service credentials provisioned: n8n-lead-writer
+
+===== 4. MIGRATIONS 0001-0006 + CHECKSUMS =====
+0001_initial_schema 7d6223e67e14314ed18f90acb331e38187af75f0991dfd46592c88d475f60480
+0002_synthetic_seed 8c062cedd865ff1f2dbf38b8aeb6e679c470567bc60eebcfa09fdf5e8bc28e72
+0003_priority_and_ticket_confirmation a7f58cec1f47abe42642c8cb8764b33dfe24cfe73378109271fd67c62464666a
+0004_one_pending_action_per_group 01714a8c50475b81004ba8c5fc0ec160b527b45a07a1f489bbfd2832ee4b068c
+0005_handoffs ee76012c0f06a9f4b6706361c80b1a5ab43e21806b113f6a79b5584cca76db8d
+0006_leads 20a239b0126833e9e9b5c7922b9d391d27db44fd54f1fd6192b53b0b372b0fce
+CHECK PASS: schema_migrations == files 0001..0006 (identical checksums)
+
+===== 5. NETWORK / EXPOSURE / ENV BOUNDARIES =====
+$ ss -tlnH
+LISTEN 0      4096       127.0.0.1:8000 0.0.0.0:*
+LISTEN 0      4096       127.0.0.1:5678 0.0.0.0:*
+LISTEN 0      4096         0.0.0.0:9922 0.0.0.0:*
+LISTEN 0      4096      127.0.0.54:53   0.0.0.0:*
+LISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*
+LISTEN 0      4096            [::]:9922    [::]:*
+CHECK PASS: backend only 127.0.0.1:8000
+CHECK PASS: n8n only 127.0.0.1:5678
+CHECK PASS: db no published port
+CHECK PASS: no :5432 host listener
+CHECK PASS: public listeners only :9922
+n8n networks: nexo_automation 
+backend networks: nexo_automation nexo_internal 
+db networks: nexo_internal 
+CHECK PASS: n8n only on nexo_automation
+CHECK PASS: backend on automation + internal
+CHECK PASS: db only on nexo_internal
+CHECK PASS: n8n reaches backend /health
+CHECK PASS: n8n cannot resolve db
+CHECK PASS: backend env has NO raw lead-writer token
+CHECK PASS: backend env LEAD_WRITER_TOKEN_SHA256 = sha256(raw token)
+n8n env names: TZ N8N_ENCRYPTION_KEY N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS N8N_HOST N8N_DIAGNOSTICS_ENABLED N8N_VERSION_NOTIFICATIONS_ENABLED N8N_PORT N8N_PROTOCOL GENERIC_TIMEZONE NODE_VERSION NPM_CONFIG_UPDATE_NOTIFIER PATH NODE_PATH NODE_ENV N8N_RELEASE_TYPE SHELL  
+CHECK PASS: n8n env has no POSTGRES_/AUTH_TOKEN_/LEAD_ vars
+
+===== 6. DRIVER (host python3 stdlib; secrets read from files, never printed) =====
+driver ready (run id 23061611809)
+
+===== 7. n8n CREDENTIAL (supported CLI: import:credentials) =====
+ nexo-n8n-1 Copying /home/user/nexo-app03bv1/cred.json to nexo-n8n-1:/tmp/cred.json
+ nexo-n8n-1 Copied /home/user/nexo-app03bv1/cred.json to nexo-n8n-1:/tmp/cred.json
+$ n8n_cli import:credentials --input=/tmp/cred.json
+Successfully imported 1 credential.
+CHECK PASS: temporary credential files deleted (host + container)
+  credentials_entity rows named nexo-lead-writer: [('NexoLeadWriter01', 'nexo-lead-writer', 'httpHeaderAuth')]
+CHECK PASS: credential nexo-lead-writer present (id NexoLeadWriter01, type httpHeaderAuth)
+CHECK PASS: credential stored ENCRYPTED (raw token not in n8n DB)
+  workflow_entity: []
+PHASE n8n_state: PASS
+
+===== 8. WORKFLOW IMPORT + ACTIVATION (supported CLI) =====
+ nexo-n8n-1 Copying n8n/workflows/nexo-lead-create.json to nexo-n8n-1:/tmp/nexo-lead-create.json
+ nexo-n8n-1 Copied n8n/workflows/nexo-lead-create.json to nexo-n8n-1:/tmp/nexo-lead-create.json
+$ n8n_cli import:workflow --input=/tmp/nexo-lead-create.json
+Importing 1 workflows...
+Successfully imported 1 workflow.
+activation command used: n8n publish:workflow --id=NexoLeadCreate01
+$ n8n_cli publish:workflow --id=NexoLeadCreate01
+Publishing workflow with ID: NexoLeadCreate01 (current version)
+Note: Changes will not take effect if n8n is running.
+Please restart n8n for changes to take effect if n8n is currently running.
+$ docker compose restart n8n
+ Container nexo-n8n-1 Restarting 
+ Container nexo-n8n-1 Started 
+$ docker compose up -d --wait --wait-timeout 180 n8n
+ Container nexo-n8n-1 Running 
+ Container nexo-n8n-1 Waiting 
+ Container nexo-n8n-1 Healthy 
+CHECK PASS: n8n healthy after activation restart
+  credentials_entity rows named nexo-lead-writer: [('NexoLeadWriter01', 'nexo-lead-writer', 'httpHeaderAuth')]
+CHECK PASS: credential nexo-lead-writer present (id NexoLeadWriter01, type httpHeaderAuth)
+CHECK PASS: credential stored ENCRYPTED (raw token not in n8n DB)
+  workflow_entity: [{'id': 'NexoLeadCreate01', 'name': 'nexo-lead-create', 'active': 1, 'activeVersionId': '4575fc35-92e0-4900-9906-f8674688c256'}]
+CHECK PASS: workflow NexoLeadCreate01 present
+PHASE n8n_state: PASS
+  webhook registration observed after ~1.3s past n8n 'healthy'
+  webhook probe (incomplete envelope): HTTP 400 {"code": "invalid_envelope"}
+CHECK PASS: workflow ACTIVE: real n8n answers 400 invalid_envelope from its Respond node
+PHASE webhook_probe: PASS
+Finished migration CreateWorkflowReviewActivityTablesAndBaseline1785843640527
+Starting migration DropWorkflowReviewActivityTypeCheckAndWorkflowIdColumn1787089039727
+Finished migration DropWorkflowReviewActivityTypeCheckAndWorkflowIdColumn1787089039727
+Starting migration CreateActivityEventTable1788425788714
+Finished migration CreateActivityEventTable1788425788714
+Finished building workflow dependency index. Processed 0 draft workflows, 0 published workflows.
+Received request for unknown webhook: The requested webhook "POST nexo-lead-create" is not registered.
+Finished building workflow dependency index. Processed 0 draft workflows, 1 published workflows.
+
+===== 9. REAL LEAD JOURNEY (prepare -> confirm -> REAL n8n -> /internal/leads -> PostgreSQL) =====
+  A. prepare: HTTP 201 {"pending_action_id": "fa230eff-5cc1-4b00-82ea-a9f655234ef1", "status": "pending"}
+CHECK PASS: prepare 201, pending, summary + 64-hex payload_hash
+CHECK PASS: prepare: lead count unchanged
+CHECK PASS: prepare: pending action row in DB
+  B. confirm: HTTP 201 Idempotency-Outcome=created {"id": "623aafe4-e472-4a53-a3e1-df2645fc0072", "workflow_execution_id": "2", "requested_by_customer_id": "CUSTOMER_A"}
+CHECK PASS: confirm 201 created
+  PostgreSQL lead row: 623aafe4-e472-4a53-a3e1-df2645fc0072|CUSTOMER_A|fa230eff-5cc1-4b00-82ea-a9f655234ef1|2
+CHECK PASS: lead row = response id, CUSTOMER_A, same action, same execution id
+CHECK PASS: exactly one new lead
+CHECK PASS: action consumed
+CHECK PASS: workflow_execution_id is NOT a FakeN8n id  [2]
+  n8n execution_entity for NexoLeadCreate01 (new): [{'id': 2, 'workflowId': 'NexoLeadCreate01', 'status': 'success', 'finished': 1, 'mode': 'webhook'}]
+CHECK PASS: REAL n8n execution with that id exists for workflow NexoLeadCreate01  [[{'id': 2, 'workflowId': 'NexoLeadCreate01', 'status': 'success', 'finished': 1, 'mode': 'webhook'}]]
+CHECK PASS: that n8n execution finished successfully
+CHECK PASS: exactly one new n8n execution
+PHASE journey: PASS
+
+===== 10. BYPASS NEGATIVE TESTS =====
+CHECK PASS: no public direct route /leads (404/405)  [404]
+CHECK PASS: no public direct route /lead (404/405)  [404]
+CHECK PASS: no public direct route /leads/create (404/405)  [404]
+  /internal/leads with no token: HTTP 401 {}
+CHECK PASS: /internal/leads with no token -> 401
+  /internal/leads with CUSTOMER_A token: HTTP 401 {}
+CHECK PASS: /internal/leads with CUSTOMER_A token -> 401
+  /internal/leads with CUSTOMER_B token: HTTP 401 {}
+CHECK PASS: /internal/leads with CUSTOMER_B token -> 401
+  /internal/leads with random token: HTTP 401 {}
+CHECK PASS: /internal/leads with random token -> 401
+  service token + UNCONFIRMED action: HTTP 409 {"code": "action_not_confirmed"}
+CHECK PASS: service token + unconfirmed action -> 409 action_not_confirmed
+  service token + wrong key: HTTP 409 Idempotency-Outcome=conflict {"code": "idempotency_key_conflict"}
+CHECK PASS: service token + wrong key -> 409
+  service token + altered payload: HTTP 409 Idempotency-Outcome=conflict {"code": "idempotency_key_conflict"}
+CHECK PASS: service token + altered payload -> 409 (no write)
+CHECK PASS: no bypass attempt created a lead
+PHASE bypass: PASS
+
+===== 11. IDEMPOTENCY / RETRIES =====
+  A. same key + same request: HTTP 201 Idempotency-Outcome=replay {"id": "623aafe4-e472-4a53-a3e1-df2645fc0072", "workflow_execution_id": "2", "requested_by_customer_id": "CUSTOMER_A"}
+CHECK PASS: A: replay, same lead id
+CHECK PASS: A: no new n8n execution (answered from PostgreSQL)
+  C. same action + new key: HTTP 409 {"code": "confirmation_already_used", "lead_id": "623aafe4-e472-4a53-a3e1-df2645fc0072"}
+CHECK PASS: C: 409 confirmation_already_used + same lead_id
+  D. same key + different action: HTTP 409 Idempotency-Outcome=conflict {"code": "idempotency_key_conflict"}
+CHECK PASS: D: 409 idempotency_key_conflict
+CHECK PASS: A/C/D created no lead
+PHASE idempotency: PASS
+  webhook called directly for UNCONFIRMED action: HTTP 409 {"code": "action_not_confirmed"}
+CHECK PASS: webhook cannot create an unconfirmed lead (409 action_not_confirmed via n8n)
+  B. duplicate delivery of the consumed main action into n8n: HTTP 201 {"id": "623aafe4-e472-4a53-a3e1-df2645fc0072", "workflow_execution_id": "2", "requested_by_customer_id": "CUSTOMER_A", "idempotency": "replay"}
+CHECK PASS: B: duplicate delivery -> 201 replay, same lead
+CHECK PASS: webhook calls created no lead
+PHASE webhook_direct: PASS
+
+===== 12. FAILURES: n8n unavailable, lost response =====
+$ docker compose stop n8n
+ Container nexo-n8n-1 Stopping 
+ Container nexo-n8n-1 Stopped 
+  confirm X while n8n is STOPPED: HTTP 503 {"code": "lead_not_confirmed"}
+CHECK PASS: X: 503 lead_not_confirmed (no false success)
+CHECK PASS: X: action stays confirmed
+  confirm Y while n8n is STOPPED: HTTP 503 {"code": "lead_not_confirmed"}
+CHECK PASS: Y: 503 lead_not_confirmed (no false success)
+CHECK PASS: Y: action stays confirmed
+  X with a different key: HTTP 409 {"code": "confirmation_in_progress"}
+CHECK PASS: different key on confirmed action -> 409 confirmation_in_progress
+CHECK PASS: no lead while n8n down
+PHASE fail1: PASS
+$ docker compose up -d --wait --wait-timeout 180 n8n
+ Container nexo-n8n-1 Starting 
+ Container nexo-n8n-1 Started 
+ Container nexo-n8n-1 Waiting 
+ Container nexo-n8n-1 Healthy 
+  X retry same key after n8n is back: HTTP 201 Idempotency-Outcome=created {"id": "6998e963-f980-4403-a046-455abb8e8ba3", "workflow_execution_id": "5", "requested_by_customer_id": "CUSTOMER_A"}
+CHECK PASS: X: retry -> 201 created through real n8n
+  E. Y delivered to n8n directly (the dispatch whose response 'was lost'): HTTP 201 {"id": "29bd1532-25cd-4c1c-b57f-abb68d51853a", "workflow_execution_id": "6", "requested_by_customer_id": "CUSTOMER_A", "idempotency": "created"}
+CHECK PASS: E: real n8n committed the lead
+  E. Y confirm retry with the same key: HTTP 201 Idempotency-Outcome=replay {"id": "29bd1532-25cd-4c1c-b57f-abb68d51853a", "workflow_execution_id": "6", "requested_by_customer_id": "CUSTOMER_A"}
+CHECK PASS: E: lost-response recovery -> 201 replay, same lead id
+CHECK PASS: X + Y = exactly 2 new leads
+PHASE fail2: PASS
+
+===== 13. FAILURE: private writer (DB INSERT fails inside /internal/leads; n8n relays 5xx) =====
+  confirm while the private writer's INSERT fails: HTTP 503 {"code": "lead_not_confirmed"}
+CHECK PASS: writer failure (n8n relays 5xx) -> 503, no false success
+CHECK PASS: writer failure: no lead, action stays confirmed
+PHASE writer1: PASS
+  retry after writer recovered: HTTP 201 Idempotency-Outcome=created {"id": "c43533d4-00f3-4b95-b7c9-b60891d92362", "workflow_execution_id": "8", "requested_by_customer_id": "CUSTOMER_A"}
+CHECK PASS: writer recovered: same-key retry -> 201 created, +1
+PHASE writer2: PASS
+NOTE: 'workflow success without a lead row' needs a modified workflow; covered only by local FakeN8n tests.
+
+===== 14. CONCURRENT /leads/confirm (endpoint level) =====
+  concurrent same-key: [(201, '9b3994f2-1f32-4575-bd92-9c199b173105'), (201, '9b3994f2-1f32-4575-bd92-9c199b173105')]
+CHECK PASS: concurrent same key: both 201, same lead
+CHECK PASS: concurrent same-key: exactly one lead
+  concurrent different-keys: [(201, '766f51f1-35e8-4cf0-8ace-03dfe3285d40'), (409, 'confirmation_in_progress')]
+CHECK PASS: concurrent different keys: one 201, one 409
+CHECK PASS: concurrent different-keys: exactly one lead
+PHASE concurrent: PASS
+
+===== 15. PERSISTENCE: recreate all containers, keep volumes =====
+n8n encryption key fingerprint before: 3fcf76eead96eb99
+$ docker compose down
+ Container nexo-backend-1 Stopping 
+ Container nexo-n8n-1 Stopping 
+ Container nexo-n8n-1 Stopped 
+ Container nexo-n8n-1 Removing 
+ Container nexo-n8n-1 Removed 
+ Container nexo-backend-1 Stopped 
+ Container nexo-backend-1 Removing 
+ Container nexo-backend-1 Removed 
+ Container nexo-db-1 Stopping 
+ Container nexo-db-1 Stopped 
+ Container nexo-db-1 Removing 
+ Container nexo-db-1 Removed 
+ Network nexo_internal Removing 
+ Network nexo_automation Removing 
+ Network nexo_internal Removed 
+ Network nexo_automation Removed 
+CHECK PASS: volumes kept
+$ docker compose up -d --wait --wait-timeout 300
+ Network nexo_automation Creating 
+ Network nexo_automation Creating 
+ Network nexo_internal Creating 
+ Network nexo_internal Creating 
+ Network nexo_internal Created 
+ Network nexo_internal Created 
+ Container nexo-db-1 Creating 
+ Network nexo_automation Created 
+ Network nexo_automation Created 
+ Container nexo-n8n-1 Creating 
+ Container nexo-db-1 Created 
+ Container nexo-backend-1 Creating 
+ Container nexo-n8n-1 Created 
+ Container nexo-backend-1 Created 
+ Container nexo-n8n-1 Starting 
+ Container nexo-db-1 Starting 
+ Container nexo-n8n-1 Started 
+ Container nexo-db-1 Started 
+ Container nexo-db-1 Waiting 
+ Container nexo-db-1 Healthy 
+ Container nexo-backend-1 Starting 
+ Container nexo-backend-1 Started 
+ Container nexo-db-1 Waiting 
+ Container nexo-backend-1 Waiting 
+ Container nexo-n8n-1 Waiting 
+ Container nexo-n8n-1 Healthy 
+ Container nexo-db-1 Healthy 
+ Container nexo-backend-1 Healthy 
+CHECK PASS: db healthy after recreation
+CHECK PASS: backend healthy after recreation
+CHECK PASS: n8n healthy after recreation
+n8n encryption key fingerprint after:  3fcf76eead96eb99
+CHECK PASS: same N8N_ENCRYPTION_KEY (fingerprint)
+CHECK PASS: main lead still in PostgreSQL after recreation
+  main confirm retry after recreation: HTTP 201 Idempotency-Outcome=replay {"id": "623aafe4-e472-4a53-a3e1-df2645fc0072", "workflow_execution_id": "2", "requested_by_customer_id": "CUSTOMER_A"}
+CHECK PASS: same confirmation retry -> same lead (replay)
+  credentials_entity rows named nexo-lead-writer: [('NexoLeadWriter01', 'nexo-lead-writer', 'httpHeaderAuth')]
+CHECK PASS: credential nexo-lead-writer present (id NexoLeadWriter01, type httpHeaderAuth)
+CHECK PASS: credential stored ENCRYPTED (raw token not in n8n DB)
+  workflow_entity: [{'id': 'NexoLeadCreate01', 'name': 'nexo-lead-create', 'active': 1, 'activeVersionId': '4575fc35-92e0-4900-9906-f8674688c256'}]
+  NEW journey after recreation: HTTP 201 Idempotency-Outcome=created {"id": "fe31ce8e-8ace-472f-ae90-4feccc4dfce3", "workflow_execution_id": "12", "requested_by_customer_id": "CUSTOMER_A"}
+CHECK PASS: workflow + credential survived: new lead created through real n8n
+CHECK PASS: new execution id exists in n8n
+PHASE persist_after: PASS
+
+===== 16. TRACEABILITY + SECRET HYGIENE =====
+  correlated audit lines for the main journey:
+   {"ts": "2026-10-06T23:06:37.218+00:00", "request_id": "v1-23061611809-main", "conversation_id": null, "method": "POST", "route": "/internal/leads", "status": 201, "duration_ms": 28.6, "service": "n8n-lead-writer", "action": "lead_write", "pending_action_id": "fa230eff-5cc1-4b00-82ea-a9f655234ef1", "workflow_execution_id": "2", "idempotency_key_fp": "53eacfb71b4c", "lead_id": "623aafe4-e472-4a53-a3e1-df2645fc0072", "idempotency": "created", "result": "success"}
+   {"ts": "2026-10-06T23:06:37.251+00:00", "request_id": "v1-23061611809-main", "conversation_id": "v1-lead-23061611809", "method": "POST", "route": "/leads/confirm", "status": 201, "duration_ms": 184.1, "customer_id": "CUSTOMER_A", "action": "lead_confirm", "pending_action_id": "fa230eff-5cc1-4b00-82ea-a9f655234ef1", "idempotency_key_fp": "53eacfb71b4c", "n8n_status": 201, "lead_id": "623aafe4-e472-4a53-a3e1-df2645fc0072", "workflow_execution_id": "2", "confirmation_result": "confirmed", "idempotency": "created", "result": "success"}
+CHECK PASS: one lead_confirm + one lead_write share request_id v1-23061611809-main
+CHECK PASS: lead_write by service n8n-lead-writer, idempotency created
+CHECK PASS: same pending_action_id on both sides
+CHECK PASS: same idempotency identity (key fingerprint) on both sides
+CHECK PASS: same REAL n8n execution id on lead_write, lead_confirm, lead row
+CHECK PASS: same lead id on both sides
+CHECK PASS: backend logs: no customer/service tokens, DB password, n8n key
+CHECK PASS: backend logs: no raw Idempotency-Key
+CHECK PASS: backend logs: no lead contact/company/need text
+CHECK PASS: n8n logs: no tokens/passwords/keys
+  n8n execution_data columns: ['executionId', 'workflowData', 'data', 'workflowVersionId']
+  RETENTION (APP03B-02, LOW) for execution 2: stored=True, contains contact e-mail=True, contains company=True, contains raw Idempotency-Key=True, contains lead-writer token=False, contains customer token=False
+CHECK PASS: n8n execution data does NOT contain the lead-writer token
+CHECK PASS: n8n execution data does NOT contain customer tokens
+  total n8n executions for NexoLeadCreate01: 12
+PHASE logs: PASS
+POSTGRES_PASSWORD: run log 0, container logs 0
+CHECK PASS: POSTGRES_PASSWORD value not in logs
+AUTH_TOKEN_CUSTOMER_A: run log 0, container logs 0
+CHECK PASS: AUTH_TOKEN_CUSTOMER_A value not in logs
+AUTH_TOKEN_CUSTOMER_B: run log 0, container logs 0
+CHECK PASS: AUTH_TOKEN_CUSTOMER_B value not in logs
+N8N_ENCRYPTION_KEY: run log 0, container logs 0
+CHECK PASS: N8N_ENCRYPTION_KEY value not in logs
+lead-writer raw token: run log 0, container logs 0
+CHECK PASS: lead-writer raw token not in logs
+
+===== 17. RESULT =====
+APP-03BV1 VM VALIDATION: ALL CHECKS PASS
+leads=7 actions=9 consumed=7
+
+===== 18. CLEANUP =====
+$ docker compose down -v
+ Container nexo-backend-1 Stopping 
+ Container nexo-n8n-1 Stopping 
+ Container nexo-n8n-1 Stopped 
+ Container nexo-n8n-1 Removing 
+ Container nexo-n8n-1 Removed 
+ Container nexo-backend-1 Stopped 
+ Container nexo-backend-1 Removing 
+ Container nexo-backend-1 Removed 
+ Container nexo-db-1 Stopping 
+ Container nexo-db-1 Stopped 
+ Container nexo-db-1 Removing 
+ Container nexo-db-1 Removed 
+ Network nexo_internal Removing 
+ Volume nexo_db_data Removing 
+ Volume nexo_n8n_data Removing 
+ Network nexo_automation Removing 
+ Volume nexo_n8n_data Removed 
+ Volume nexo_db_data Removed 
+ Network nexo_internal Removed 
+ Network nexo_automation Removed 
+$ docker image rm nexo-backend:0.1.0 pgvector/pgvector:0.8.7-pg17-bookworm n8nio/n8n:2.42.3
+Untagged: nexo-backend:0.1.0
+Deleted: sha256:71c317981c519cb4d30391816beb00602cad9cb6bc7d2b72bf544e475717a3d4
+Untagged: pgvector/pgvector:0.8.7-pg17-bookworm
+Deleted: sha256:ac08538c6f8b9904c33c8224c5e5706dbe760aca29db1d096972b4052c22a75d
+Untagged: n8nio/n8n:2.42.3
+Deleted: sha256:240eaa2a3d491adac5817aa4c3f1c521bb18ec79f6e448517158d5220ee0f37b
+Total:	249.1MB
+
+===== 19. FINAL STATE =====
+$ docker ps -a
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+$ docker images
+IMAGE   ID             DISK USAGE   CONTENT SIZE   EXTRA
+$ docker volume ls
+DRIVER    VOLUME NAME
+$ docker network ls
+NETWORK ID     NAME      DRIVER    SCOPE
+6381b14192e7   bridge    bridge    local
+5885cec536ca   host      host      local
+447cca8214c8   none      null      local
+$ docker system df
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          0         0         0B        0B
+Containers      0         0         0B        0B
+Local Volumes   0         0         0B        0B
+Build Cache     0         0         0B        0B
+$ ss -tlnH
+LISTEN 0      4096         0.0.0.0:9922 0.0.0.0:*
+LISTEN 0      4096      127.0.0.54:53   0.0.0.0:*
+LISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*
+LISTEN 0      4096            [::]:9922    [::]:*
+$ test ! -e /home/user/nexo-app03bv1
+temporary directory removed (checkout, .env, token file, n8n DB copies, state)

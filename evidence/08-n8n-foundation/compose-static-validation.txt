@@ -1,0 +1,38 @@
+# N8N-01 static compose validation (2026-10-06, local; no Docker on the workstation, so no runtime here)
+
+## Resolved structure (parsed from compose.yaml with PyYAML)
+db       image=pgvector/pgvector:0.8.7-pg17-bookworm restart=unless-stopped ports=[] networks=['internal'] volumes=['db_data:/var/lib/postgresql/data'] healthcheck=yes
+backend  image=nexo-backend:0.1.0 restart=unless-stopped ports=['127.0.0.1:${BACKEND_PORT:-8000}:8000'] networks=['internal', 'automation'] volumes=[] healthcheck=Dockerfile HEALTHCHECK
+n8n      image=n8nio/n8n:2.42.3 restart=unless-stopped ports=['127.0.0.1:${N8N_HOST_PORT:-5678}:5678'] networks=['automation'] volumes=['n8n_data:/home/node/.n8n'] healthcheck=yes
+volumes: ['db_data', 'n8n_data']
+networks: ['internal', 'automation']
+n8n env keys: ['GENERIC_TIMEZONE', 'N8N_DIAGNOSTICS_ENABLED', 'N8N_ENCRYPTION_KEY', 'N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS', 'N8N_HOST', 'N8N_PORT', 'N8N_PROTOCOL', 'N8N_VERSION_NOTIFICATIONS_ENABLED', 'TZ']
+
+## Image pin source (Docker Hub, read-only query on 2026-10-06)
+tag 'stable' and 'latest' share one digest with tag 2.42.3; 2.43.0 is 'next'/'beta'. Pinned: n8nio/n8n:2.42.3
+
+## tests/test_compose.py
+tests/test_compose.py::test_compose_parses_with_expected_services PASSED [  4%]
+tests/test_compose.py::test_db_publishes_no_host_port PASSED             [  8%]
+tests/test_compose.py::test_all_published_ports_bind_to_loopback PASSED  [ 13%]
+tests/test_compose.py::test_compose_images_are_pinned[db] PASSED         [ 17%]
+tests/test_compose.py::test_compose_images_are_pinned[backend] PASSED    [ 21%]
+tests/test_compose.py::test_compose_images_are_pinned[n8n] PASSED        [ 26%]
+tests/test_compose.py::test_dockerfile_base_image_is_pinned PASSED       [ 30%]
+tests/test_compose.py::test_db_uses_named_persistent_volume PASSED       [ 34%]
+tests/test_compose.py::test_db_has_healthcheck_and_backend_waits_for_it PASSED [ 39%]
+tests/test_compose.py::test_restart_policy_set PASSED                    [ 43%]
+tests/test_compose.py::test_backend_receives_synthetic_auth_tokens_via_substitution PASSED [ 47%]
+tests/test_compose.py::test_container_migrates_before_serving PASSED     [ 52%]
+tests/test_compose.py::test_credentials_come_only_from_variable_substitution PASSED [ 56%]
+tests/test_compose.py::test_n8n_uses_official_pinned_image PASSED        [ 60%]
+tests/test_compose.py::test_n8n_ui_published_on_loopback_only PASSED     [ 65%]
+tests/test_compose.py::test_networks_follow_least_privilege PASSED       [ 69%]
+tests/test_compose.py::test_n8n_state_is_on_a_named_volume PASSED        [ 73%]
+tests/test_compose.py::test_n8n_has_healthcheck_and_minimal_telemetry PASSED [ 78%]
+tests/test_compose.py::test_n8n_gets_no_application_secrets PASSED       [ 82%]
+tests/test_compose.py::test_no_privileged_containers_or_docker_socket[db] PASSED [ 86%]
+tests/test_compose.py::test_no_privileged_containers_or_docker_socket[backend] PASSED [ 91%]
+tests/test_compose.py::test_no_privileged_containers_or_docker_socket[n8n] PASSED [ 95%]
+tests/test_compose.py::test_env_example_has_names_only PASSED            [100%]
+======================== 23 passed, 1 warning in 0.07s ========================

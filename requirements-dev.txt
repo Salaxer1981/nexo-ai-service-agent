@@ -1,0 +1,6 @@
+-r src/backend/requirements.txt
+pytest==9.1.1
+httpx==0.28.1
+pyyaml==6.0.3
+# Integration tests also need PostgreSQL 17 binaries (initdb, pg_ctl): set PG_BIN, or place them
+# in .tools/pg17.11/pgsql/bin (git-ignored). See tests/conftest.py.

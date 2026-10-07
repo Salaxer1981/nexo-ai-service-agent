@@ -1,0 +1,54 @@
+{
+  "provider": "OpenRouter /api/v1/embeddings",
+  "model": "openai/text-embedding-3-small",
+  "dimension": 1536,
+  "batch_order_preserved": true,
+  "first_ingest": {
+    "documents": 4,
+    "new": 4,
+    "updated": 0,
+    "unchanged": 0,
+    "deleted_documents": 0,
+    "chunks": 10,
+    "embedded": 10,
+    "deleted_chunks": 0
+  },
+  "second_ingest": {
+    "documents": 4,
+    "new": 0,
+    "updated": 0,
+    "unchanged": 4,
+    "deleted_documents": 0,
+    "chunks": 10,
+    "embedded": 0,
+    "deleted_chunks": 0
+  },
+  "known_query": {
+    "query": "¿Cuál es el horario de atención del soporte?",
+    "evidence": "found",
+    "top": [
+      [
+        "support-policy#horario-de-atencion",
+        "02_support_policy.md § Horario de atención",
+        0.6988
+      ],
+      [
+        "support-policy#limites-del-agente-y-escalado",
+        "02_support_policy.md § Límites del agente y escalado",
+        0.476
+      ],
+      [
+        "services#catalogo-de-servicios",
+        "01_services.md § Catálogo de servicios",
+        0.4703
+      ]
+    ]
+  },
+  "unrelated_query": {
+    "query": "receta de paella valenciana",
+    "evidence": "insufficient",
+    "best_score": 0.1674
+  },
+  "min_score": 0.39,
+  "pgvector_type": "vector(1536)"
+}

@@ -1,0 +1,29 @@
+# AGENT-01BF3 proposal-wins tests against c693a5a (version-compatible hook) (local: REAL PostgreSQL 17.11 + pgvector 0.8.7; TEST-ONLY scripted model; FakeN8n = TEST stand-in, NOT n8n)
+
+assert False is True = api_waited: the plain API was NOT blocked (no row lock): the TOCTOU gap.
+
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Scripts\python.exe
+rootdir: C:\Users\User\Desktop\nexo-ai-service-agent
+configfile: pytest.ini
+plugins: anyio-4.15.1
+collecting ... collected 7 items / 5 deselected / 2 selected
+
+tests/test_chat_actions_f3.py::test_ticket_proposal_wins_and_api_confirm_waits_then_fails_safely FAILED [ 50%]
+tests/test_chat_actions_f3.py::test_lead_proposal_wins_and_api_confirm_waits_then_fails_safely FAILED [100%]
+
+================================== FAILURES ===================================
+E   assert False is True
+C:\Users\User\Desktop\nexo-ai-service-agent\tests\test_chat_actions_f3.py:77: assert False is True
+E   assert False is True
+C:\Users\User\Desktop\nexo-ai-service-agent\tests\test_chat_actions_f3.py:89: assert False is True
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_chat_actions_f3.py::test_ticket_proposal_wins_and_api_confirm_waits_then_fails_safely
+FAILED tests/test_chat_actions_f3.py::test_lead_proposal_wins_and_api_confirm_waits_then_fails_safely
+================= 2 failed, 5 deselected, 1 warning in 49.54s =================

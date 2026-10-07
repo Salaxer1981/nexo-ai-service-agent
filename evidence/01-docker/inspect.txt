@@ -1,0 +1,128 @@
+# PRE-02 step 1 — read-only pre-install inspection (sanitized)
+# Source: ssh -p 9922 user@<VM> 'bash -s' < inspect.sh (owner-run, password entered at prompt, not captured)
+# Captured: 2026-10-06. Sanitization: secret-pattern scan, no matches; content unchanged.
+# Verdict: no conflicting packages, no existing Docker source, apt idle -> safe to install.
+
+
+===== OS / ARCH COMPATIBILITY =====
+$ grep -E ^(VERSION_ID|VERSION_CODENAME|UBUNTU_CODENAME)= /etc/os-release
+VERSION_ID="24.04"
+VERSION_CODENAME=noble
+UBUNTU_CODENAME=noble
+$ dpkg --print-architecture
+amd64
+
+===== APT SOURCES =====
+$ ls -la /etc/apt/sources.list.d/
+total 16
+drwxr-xr-x 2 root root 4096 oct  6 08:58 .
+drwxr-xr-x 9 root root 4096 oct  6 08:55 ..
+-rw-r--r-- 1 root root  383 oct  6 08:58 ubuntu.sources
+-rw-r--r-- 1 root root 2552 feb 10  2026 ubuntu.sources.curtin.orig
+$ ls -la /etc/apt/keyrings/
+total 8
+drwxr-xr-x 2 root root 4096 mar 31  2024 .
+drwxr-xr-x 9 root root 4096 oct  6 08:55 ..
+$ grep -rhE ^(Types|URIs|Suites|Components|deb ) /etc/apt/sources.list /etc/apt/sources.list.d/
+Types: deb
+URIs: http://archive.ubuntu.com/ubuntu/
+Suites: noble noble-updates noble-backports
+Components: main restricted universe multiverse
+Types: deb
+URIs: http://security.ubuntu.com/ubuntu/
+Suites: noble-security
+Components: main restricted universe multiverse
+Types: deb
+URIs: http://archive.ubuntu.com/ubuntu/
+Suites: noble noble-updates noble-backports
+Components: main universe restricted multiverse
+Types: deb
+URIs: http://security.ubuntu.com/ubuntu/
+Suites: noble-security
+Components: main universe restricted multiverse
+$ grep -rl download.docker.com /etc/apt/sources.list /etc/apt/sources.list.d/
+(exit 1)
+
+===== CONFLICTING PACKAGES (Docker docs list) =====
+docker.io            not-installed
+docker-doc           not-installed
+docker-compose       not-installed
+docker-compose-v2    not-installed
+podman-docker        not-installed
+containerd           not-installed
+runc                 not-installed
+docker-ce            not-installed
+docker-ce-cli        not-installed
+containerd.io        not-installed
+$ snap list docker
+error: no matching snaps installed
+(exit 1)
+$ apt-cache policy docker-ce docker.io
+docker-ce:
+  Instalados: (ninguno)
+  Candidato:  (ninguno)
+  Tabla de versión:
+docker.io:
+  Instalados: (ninguno)
+  Candidato:  28.2.2-0ubuntu1~24.04.1
+  Tabla de versión:
+     28.2.2-0ubuntu1~24.04.1 500
+        500 http://archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages
+     27.5.1-0ubuntu3~24.04.2 500
+        500 http://security.ubuntu.com/ubuntu noble-security/universe amd64 Packages
+     24.0.7-0ubuntu4 500
+        500 http://archive.ubuntu.com/ubuntu noble/universe amd64 Packages
+
+===== APT/DPKG ACTIVITY (must be idle) =====
+$ pgrep -a apt|dpkg|unattended
+892 /usr/bin/python3 /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal
+
+===== PREREQUISITES =====
+$ dpkg-query -W -f=${Package} ${Version}\n ca-certificates curl gnupg
+ca-certificates 20240203
+curl 8.5.0-2ubuntu10.6
+gnupg 2.4.4-2ubuntu17.4
+$ command -v gpg
+/usr/bin/gpg
+
+===== FIREWALL CONTEXT (read-only) =====
+$ systemctl is-active ufw
+active
+$ update-alternatives --query iptables
+Name: iptables
+Link: /usr/sbin/iptables
+Slaves:
+ iptables-restore /usr/sbin/iptables-restore
+ iptables-save /usr/sbin/iptables-save
+Status: auto
+Best: /usr/sbin/iptables-nft
+Value: /usr/sbin/iptables-nft
+
+Alternative: /usr/sbin/iptables-legacy
+Priority: 10
+Slaves:
+ iptables-restore /usr/sbin/iptables-legacy-restore
+ iptables-save /usr/sbin/iptables-legacy-save
+
+Alternative: /usr/sbin/iptables-nft
+Priority: 20
+Slaves:
+ iptables-restore /usr/sbin/iptables-nft-restore
+ iptables-save /usr/sbin/iptables-nft-save
+
+===== EXISTING docker GROUP / USER GROUPS =====
+$ getent group docker
+(exit 2)
+$ id
+uid=1000(user) gid=1000(user) groups=1000(user),4(adm),24(cdrom),27(sudo),30(dip),46(plugdev),101(lxd)
+
+===== REACHABILITY =====
+$ curl https://download.docker.com/linux/ubuntu/dists/noble/Release
+http_code=200
+$ curl https://registry-1.docker.io/v2/
+http_code=401 (401 expected = reachable)
+
+===== DISK BEFORE =====
+$ df -h /
+Filesystem                         Size  Used Avail Use% Mounted on
+/dev/mapper/ubuntu--vg-ubuntu--lv   47G  6,4G   39G  15% /

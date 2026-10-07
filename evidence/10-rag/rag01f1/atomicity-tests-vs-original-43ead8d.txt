@@ -1,0 +1,68 @@
+# RAG-01F1 SAME tests against the ORIGINAL rag.py from 43ead8d (temporarily restored, then put back; cmp verified) (local: Windows 11, Python 3.12.10, PostgreSQL 17.11 + pgvector 0.8.7; TEST-ONLY embedding providers)
+
+Tests tagged [ORIGINAL-FAILS] must fail here; the other two protect behaviour the fix keeps.
+
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Scripts\python.exe
+rootdir: C:\Users\User\Desktop\nexo-ai-service-agent
+configfile: pytest.ini
+plugins: anyio-4.15.1
+collecting ... collected 8 items
+
+tests/test_rag_atomic.py::test_failed_model_migration_preserves_previous_index FAILED [ 12%]
+tests/test_rag_atomic.py::test_database_failure_during_publication_rolls_back_everything FAILED [ 25%]
+tests/test_rag_atomic.py::test_provider_failure_does_not_delete_stale_content FAILED [ 37%]
+tests/test_rag_atomic.py::test_concurrent_generations_never_mix FAILED   [ 50%]
+tests/test_rag_atomic.py::test_second_ingestion_waits_for_the_lock FAILED [ 62%]
+tests/test_rag_atomic.py::test_concurrent_change_forces_replan_not_partial_publication PASSED [ 75%]
+tests/test_rag_atomic.py::test_reference_mismatch_fails_closed_before_any_mutation FAILED [ 87%]
+tests/test_rag_atomic.py::test_returned_references_are_the_real_files PASSED [100%]
+
+================================== FAILURES ===================================
+E   AssertionError: assert ([(3, 'commer...', ...), ...]) == ([(3, 'commer...', ...), ...])
+      
+      At index 0 diff: [(3, 'commercial-policy', 'Condiciones comerciales', '03_commercial_policy.md', '03_commercial_policy.md', '6b9ffe106baeeb978414c667b783de5cc3540b2262c8aa005dedefe74f21e7cf', 'test-only/hashing-v1', datetime.datetime(2026, 10, 7, 2, 12, 31, 36288, tzinfo=zoneinfo.ZoneInfo(key='Europe/Paris'))), (4, 'security-policy', 'Seguridad', '04_security_policy.md', '04_security_policy.md', '65dc1544a629d2abd5188db3b6bbe31f779ec45ae568f9eaf5fe85fc08b491e1', 'test-only/hashing-v1', datetime.datetime(2026, 10, 7, 2, 12, 31, 41173, tzinfo=zoneinfo.ZoneInfo(key='Europe...
+      
+      ...Full output truncated (220 lines hidden), use '-vv' to show
+C:\Users\User\Desktop\nexo-ai-service-agent\tests\test_rag_atomic.py:69: AssertionError: assert ([(3, 'commer...', ...), ...]) == ([(3, 'commer...', ...), ...])
+E   AssertionError: assert (([(3, 'commer...', ...), ...]) == ([(3, 'commer...', ...), ...])
+      
+      At index 0 diff: [(3, 'commercial-policy', 'Condiciones comerciales', '03_commercial_policy.md', '03_commercial_policy.md', '6b9ffe106baeeb978414c667b783de5cc3540b2262c8aa005dedefe74f21e7cf', 'test-only/hashing-v1', datetime.datetime(2026, 10, 7, 2, 12, 31, 666218, tzinfo=zoneinfo.ZoneInfo(key='Europe/Paris'))), (4, 'security-policy', 'Seguridad', '04_security_policy.md', '04_security_policy.md', '65dc1544a629d2abd5188db3b6bbe31f779ec45ae568f9eaf5fe85fc08b491e1', 'test-only/hashing-v1', datetime.datetime(2026, 10, 7, 2, 12, 31, 670817, tzinfo=zoneinfo.ZoneInfo(key='Euro...
+      
+      ...Full output truncated (220 lines hidden), use '-vv' to show)
+C:\Users\User\Desktop\nexo-ai-service-agent\tests\test_rag_atomic.py:89: AssertionError: assert (([(3, 'commer...', ...), ...]) == ([(3, 'commer...', ...), ...])
+E   AssertionError: assert ([(3, 'commer...', ...), ...]) == ([(3, 'commer...', ...), ...])
+      
+      At index 0 diff: [(3, 'commercial-policy', 'Condiciones comerciales', '03_commercial_policy.md', '03_commercial_policy.md', '6b9ffe106baeeb978414c667b783de5cc3540b2262c8aa005dedefe74f21e7cf', 'test-only/hashing-v1', datetime.datetime(2026, 10, 7, 2, 12, 32, 260886, tzinfo=zoneinfo.ZoneInfo(key='Europe/Paris'))), (4, 'security-policy', 'Seguridad', '04_security_policy.md', '04_security_policy.md', '65dc1544a629d2abd5188db3b6bbe31f779ec45ae568f9eaf5fe85fc08b491e1', 'test-only/hashing-v1', datetime.datetime(2026, 10, 7, 2, 12, 32, 264877, tzinfo=zoneinfo.ZoneInfo(key='Euro...
+      
+      ...Full output truncated (219 lines hidden), use '-vv' to show
+C:\Users\User\Desktop\nexo-ai-service-agent\tests\test_rag_atomic.py:110: AssertionError: assert ([(3, 'commer...', ...), ...]) == ([(3, 'commer...', ...), ...])
+E   AssertionError: assert {'test-only/h...y/hashing-v2'} == {'test-only/hashing-v1'}
+      
+      Extra items in the left set:
+      'test-only/hashing-v2'
+      
+      Full diff:
+        {
+            'test-only/hashing-v1',
+      +     'test-only/hashing-v2',
+        }
+C:\Users\User\Desktop\nexo-ai-service-agent\tests\test_rag_atomic.py:137: AssertionError: assert {'test-only/h...y/hashing-v2'} == {'test-only/hashing-v1'}
+E   AttributeError: module 'app.rag' has no attribute 'INGEST_LOCK_KEY'
+C:\Users\User\Desktop\nexo-ai-service-agent\tests\test_rag_atomic.py:148: AttributeError: module 'app.rag' has no attribute 'INGEST_LOCK_KEY'
+E   Failed: DID NOT RAISE CorpusError
+C:\Users\User\Desktop\nexo-ai-service-agent\tests\test_rag_atomic.py:201: Failed: DID NOT RAISE CorpusError
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_rag_atomic.py::test_failed_model_migration_preserves_previous_index
+FAILED tests/test_rag_atomic.py::test_database_failure_during_publication_rolls_back_everything
+FAILED tests/test_rag_atomic.py::test_provider_failure_does_not_delete_stale_content
+FAILED tests/test_rag_atomic.py::test_concurrent_generations_never_mix - Asse...
+FAILED tests/test_rag_atomic.py::test_second_ingestion_waits_for_the_lock - A...
+FAILED tests/test_rag_atomic.py::test_reference_mismatch_fails_closed_before_any_mutation
+=================== 6 failed, 2 passed, 1 warning in 12.47s ===================

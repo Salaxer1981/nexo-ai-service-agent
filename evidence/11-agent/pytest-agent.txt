@@ -1,0 +1,81 @@
+# AGENT-01A agent tests (local: Windows 11, Python 3.12.10, PostgreSQL 17.11 + pgvector 0.8.7; TEST-ONLY chat client + embedder)
+
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Scripts\python.exe
+rootdir: C:\Users\User\Desktop\nexo-ai-service-agent
+configfile: pytest.ini
+plugins: anyio-4.15.1
+collecting ... collected 62 items
+
+tests/test_agent.py::test_supported_question_is_answered_only_from_retrieved_evidence PASSED [  1%]
+tests/test_agent.py::test_citations_resolve_to_indexed_chunks_and_real_files PASSED [  3%]
+tests/test_agent.py::test_no_evidence_answers_insufficient_without_asking_the_model PASSED [  4%]
+tests/test_agent.py::test_model_declining_gives_insufficient PASSED      [  6%]
+tests/test_agent.py::test_ungrounded_answers_are_blocked[El horario es de 9:00 a 18:00.-cited0-fabricated source id] PASSED [  8%]
+tests/test_agent.py::test_ungrounded_answers_are_blocked[Atendemos de lunes a viernes.-cited1-fabricated source id, no figures] PASSED [  9%]
+tests/test_agent.py::test_ungrounded_answers_are_blocked[Atendemos de lunes a viernes.-cited2-one real + one fabricated source] PASSED [ 11%]
+tests/test_agent.py::test_ungrounded_answers_are_blocked[El horario es de 9:00 a 18:00.-cited3-real chunk that was NOT retrieved] PASSED [ 12%]
+tests/test_agent.py::test_ungrounded_answers_are_blocked[El horario es de 9:00 a 18:00.-cited4-no citation] PASSED [ 14%]
+tests/test_agent.py::test_ungrounded_answers_are_blocked[El horario es de 8:00 a 20:00.-cited5-invented schedule] PASSED [ 16%]
+tests/test_agent.py::test_ungrounded_answers_are_blocked[Atendemos de lunes a viernes y resolvemos en 4 horas.-cited6-invented SLA] PASSED [ 17%]
+tests/test_agent.py::test_ungrounded_answers_are_blocked[El horario es de lunes a viernes; adem\xe1s te hacemos un 20 % de descuento.-cited7-invented discount] PASSED [ 19%]
+tests/test_agent.py::test_ungrounded_answers_are_blocked[-cited8-empty answer] PASSED [ 20%]
+tests/test_agent.py::test_ungrounded_answers_are_blocked[xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-cited9-oversized answer] PASSED [ 22%]
+tests/test_agent.py::test_figure_guard_is_token_based PASSED             [ 24%]
+tests/test_agent.py::test_figures_must_come_from_the_cited_chunks_not_from_other_retrieved_ones PASSED [ 25%]
+tests/test_agent.py::test_ticket_status_comes_from_postgresql_not_the_model PASSED [ 27%]
+tests/test_agent.py::test_foreign_and_missing_tickets_get_the_same_safe_answer PASSED [ 29%]
+tests/test_agent.py::test_ticket_id_must_be_typed_by_the_customer PASSED [ 30%]
+tests/test_agent.py::test_customer_id_written_in_chat_is_not_authentication PASSED [ 32%]
+tests/test_agent.py::test_action_intents_are_recognised_but_never_executed[create_ticket-Soy Ana de Taller Norte. Estamos sin internet desde hace veinte minutos y afecta a toda la oficina.] PASSED [ 33%]
+tests/test_agent.py::test_action_intents_are_recognised_but_never_executed[create_lead-Somos una asesor\xeda de 18 personas y queremos automatizar las consultas de nuestros clientes.] PASSED [ 35%]
+tests/test_agent.py::test_action_intents_are_recognised_but_never_executed[request_human-Quiero hablar con una persona, por favor.] PASSED [ 37%]
+tests/test_agent.py::test_unclear_message_asks_for_clarification PASSED  [ 38%]
+tests/test_agent.py::test_invalid_intent_output_fails_safely[bad0] PASSED [ 40%]
+tests/test_agent.py::test_invalid_intent_output_fails_safely[bad1] PASSED [ 41%]
+tests/test_agent.py::test_invalid_intent_output_fails_safely[bad2] PASSED [ 43%]
+tests/test_agent.py::test_invalid_intent_output_fails_safely[bad3] PASSED [ 45%]
+tests/test_agent.py::test_invalid_intent_output_fails_safely[bad4] PASSED [ 46%]
+tests/test_agent.py::test_invalid_intent_output_fails_safely[bad5] PASSED [ 48%]
+tests/test_agent.py::test_invalid_answer_output_fails_safely[bad0] PASSED [ 50%]
+tests/test_agent.py::test_invalid_answer_output_fails_safely[bad1] PASSED [ 51%]
+tests/test_agent.py::test_invalid_answer_output_fails_safely[bad2] PASSED [ 53%]
+tests/test_agent.py::test_invalid_answer_output_fails_safely[bad3] PASSED [ 54%]
+tests/test_agent.py::test_llm_failures_answer_503_without_any_answer[exc0-llm_unavailable] PASSED [ 56%]
+tests/test_agent.py::test_llm_failures_answer_503_without_any_answer[exc1-llm_unavailable] PASSED [ 58%]
+tests/test_agent.py::test_llm_failures_answer_503_without_any_answer[exc2-llm_model_mismatch] PASSED [ 59%]
+tests/test_agent.py::test_llm_failures_answer_503_without_any_answer[exc3-llm_invalid_output] PASSED [ 61%]
+tests/test_agent.py::test_failure_in_answer_stage_keeps_intent PASSED    [ 62%]
+tests/test_agent.py::test_dependencies_unavailable PASSED                [ 64%]
+tests/test_agent.py::test_auth_and_input_validation PASSED               [ 66%]
+tests/test_agent.py::test_conversation_id_from_body_or_generated PASSED  [ 67%]
+tests/test_agent.py::test_pdf_injection_in_user_message_cannot_trigger_actions_or_cross_customer_reads PASSED [ 69%]
+tests/test_agent.py::test_user_message_is_passed_to_the_model_as_data PASSED [ 70%]
+tests/test_agent.py::test_injection_inside_a_retrieved_document_is_data_only PASSED [ 72%]
+tests/test_agent.py::test_whole_battery_of_turns_mutates_nothing PASSED  [ 74%]
+tests/test_agent.py::test_agent_database_session_is_read_only PASSED     [ 75%]
+tests/test_agent.py::test_audit_has_decision_facts_but_no_text_or_secrets PASSED [ 77%]
+tests/test_agent.py::test_audit_on_failure_keeps_intent_and_usage PASSED [ 79%]
+tests/test_agent.py::test_openrouter_client_request_and_success PASSED   [ 80%]
+tests/test_agent.py::test_openrouter_client_failures[reply0-LLMUnavailable] PASSED [ 82%]
+tests/test_agent.py::test_openrouter_client_failures[reply1-LLMUnavailable] PASSED [ 83%]
+tests/test_agent.py::test_openrouter_client_failures[reply2-LLMModelMismatch] PASSED [ 85%]
+tests/test_agent.py::test_openrouter_client_failures[reply3-LLMInvalidOutput] PASSED [ 87%]
+tests/test_agent.py::test_openrouter_client_failures[reply4-LLMInvalidOutput] PASSED [ 88%]
+tests/test_agent.py::test_openrouter_client_failures[reply5-LLMInvalidOutput] PASSED [ 90%]
+tests/test_agent.py::test_openrouter_client_failures[reply6-LLMInvalidOutput] PASSED [ 91%]
+tests/test_agent.py::test_openrouter_client_failures[reply7-LLMInvalidOutput] PASSED [ 93%]
+tests/test_agent.py::test_openrouter_client_failures[reply8-LLMUnavailable] PASSED [ 95%]
+tests/test_agent.py::test_openrouter_client_failures[reply9-LLMUnavailable] PASSED [ 96%]
+tests/test_agent.py::test_chat_model_configuration PASSED                [ 98%]
+tests/test_agent_live.py::test_live_agent_smoke SKIPPED (live OpenRo...) [100%]
+
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+SKIPPED [1] tests\test_agent_live.py:60: live OpenRouter smoke only when NEXO_LIVE_OPENROUTER=1
+================== 61 passed, 1 skipped, 1 warning in 26.30s ==================

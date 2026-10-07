@@ -1,0 +1,21 @@
+# UI-02 — FAILED cleanup v1: its pkill pattern matched its own command line and killed itself before cleaning (harness defect).
+# REAL VM (Ubuntu 24.04.4, Docker 29.8.2). Candidate ca86d7c3459f713319aa80de482cbcdb8c22fa01 (branch ui02-candidate).
+# Sanitized copy of raw/cleanup1-selfkilled.raw.log: 0 docker pull-progress lines removed; nothing else changed. OpenRouter key: 0; control token: 0.
+
+===== FOUND =====
+work dir present: yes
+control endpoint processes: 1
+harness shells still running: 5
+nexo-web-1 Up 12 minutes (healthy)
+nexo-backend-1 Up 12 minutes (healthy)
+nexo-db-1 Up 12 minutes (healthy)
+nexo-n8n-1 Up 11 minutes (healthy)
+LISTEN 0      4096       127.0.0.1:8000 0.0.0.0:*
+LISTEN 0      5          127.0.0.1:8099 0.0.0.0:*
+LISTEN 0      4096       127.0.0.1:8080 0.0.0.0:*
+LISTEN 0      4096       127.0.0.1:5678 0.0.0.0:*
+LISTEN 0      4096         0.0.0.0:9922 0.0.0.0:*
+LISTEN 0      4096      127.0.0.54:53   0.0.0.0:*
+LISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*
+LISTEN 0      4096            [::]:9922    [::]:*
+===== CLEANUP =====

@@ -1,0 +1,352 @@
+{
+  "summary": {
+    "model": "openai/text-embedding-3-small",
+    "dimension": 1536,
+    "chunks": 10,
+    "queries": 24,
+    "min_supported_expected_score": 0.4195,
+    "max_unrelated_top1_score": 0.2505,
+    "max_absent_in_domain_top1_score": 0.369,
+    "max_non_supported_score": 0.369,
+    "gap": 0.0505,
+    "unrelated_only_midpoint_for_comparison": 0.33,
+    "top1_correct": "14/15",
+    "threshold": 0.39,
+    "supported_with_expected_chunk_accepted": "15/15",
+    "non_supported_with_any_accepted": "0/9"
+  },
+  "rows": [
+    {
+      "category": "known",
+      "query": "¿Cuál es el horario de atención del soporte?",
+      "expected": "support-policy#horario-de-atencion",
+      "top1": "support-policy#horario-de-atencion",
+      "top1_score": 0.6989,
+      "top1_correct": true,
+      "expected_score": 0.6989,
+      "second_score": 0.476,
+      "accepted_at_threshold": [
+        "support-policy#horario-de-atencion",
+        "support-policy#limites-del-agente-y-escalado",
+        "services#catalogo-de-servicios"
+      ],
+      "expected_accepted": true
+    },
+    {
+      "category": "known",
+      "query": "¿Cuánto cuesta el diagnóstico inicial?",
+      "expected": "commercial-policy#tarifas",
+      "top1": "commercial-policy#tarifas",
+      "top1_score": 0.5371,
+      "top1_correct": true,
+      "expected_score": 0.5371,
+      "second_score": 0.2776,
+      "accepted_at_threshold": [
+        "commercial-policy#tarifas"
+      ],
+      "expected_accepted": true
+    },
+    {
+      "category": "known",
+      "query": "¿Qué servicios ofrecéis?",
+      "expected": "services#catalogo-de-servicios",
+      "top1": "services#catalogo-de-servicios",
+      "top1_score": 0.5169,
+      "top1_correct": true,
+      "expected_score": 0.5169,
+      "second_score": 0.4431,
+      "accepted_at_threshold": [
+        "services#catalogo-de-servicios",
+        "commercial-policy#tarifas"
+      ],
+      "expected_accepted": true
+    },
+    {
+      "category": "known",
+      "query": "¿Cuándo se considera crítica una incidencia?",
+      "expected": "support-policy#clasificacion-de-incidencias",
+      "top1": "support-policy#clasificacion-de-incidencias",
+      "top1_score": 0.5048,
+      "top1_correct": true,
+      "expected_score": 0.5048,
+      "second_score": 0.401,
+      "accepted_at_threshold": [
+        "support-policy#clasificacion-de-incidencias",
+        "support-policy#limites-del-agente-y-escalado"
+      ],
+      "expected_accepted": true
+    },
+    {
+      "category": "known",
+      "query": "¿El agente puede reiniciar un servidor?",
+      "expected": "support-policy#limites-del-agente-y-escalado",
+      "top1": "support-policy#limites-del-agente-y-escalado",
+      "top1_score": 0.5457,
+      "top1_correct": true,
+      "expected_score": 0.5457,
+      "second_score": 0.3894,
+      "accepted_at_threshold": [
+        "support-policy#limites-del-agente-y-escalado"
+      ],
+      "expected_accepted": true
+    },
+    {
+      "category": "known",
+      "query": "¿Puedo darle mi contraseña al agente?",
+      "expected": "security-policy#datos-sensibles-y-privacidad",
+      "top1": "support-policy#limites-del-agente-y-escalado",
+      "top1_score": 0.4503,
+      "top1_correct": false,
+      "expected_score": 0.437,
+      "second_score": 0.437,
+      "accepted_at_threshold": [
+        "support-policy#limites-del-agente-y-escalado",
+        "security-policy#datos-sensibles-y-privacidad",
+        "security-policy#acciones-y-borrados"
+      ],
+      "expected_accepted": true
+    },
+    {
+      "category": "known",
+      "query": "¿Cuánto cuesta una implantación de IA?",
+      "expected": "commercial-policy#implantaciones-de-ia-y-descuentos",
+      "top1": "commercial-policy#implantaciones-de-ia-y-descuentos",
+      "top1_score": 0.5721,
+      "top1_correct": true,
+      "expected_score": 0.5721,
+      "second_score": 0.4607,
+      "accepted_at_threshold": [
+        "commercial-policy#implantaciones-de-ia-y-descuentos",
+        "services#nuevas-implantaciones-y-plazos"
+      ],
+      "expected_accepted": true
+    },
+    {
+      "category": "known",
+      "query": "¿Cuándo estará lista una nueva implantación?",
+      "expected": "services#nuevas-implantaciones-y-plazos",
+      "top1": "services#nuevas-implantaciones-y-plazos",
+      "top1_score": 0.6806,
+      "top1_correct": true,
+      "expected_score": 0.6806,
+      "second_score": 0.3334,
+      "accepted_at_threshold": [
+        "services#nuevas-implantaciones-y-plazos"
+      ],
+      "expected_accepted": true
+    },
+    {
+      "category": "paraphrase",
+      "query": "¿A qué hora puedo contactar con vosotros entre semana?",
+      "expected": "support-policy#horario-de-atencion",
+      "top1": "support-policy#horario-de-atencion",
+      "top1_score": 0.5153,
+      "top1_correct": true,
+      "expected_score": 0.5153,
+      "second_score": 0.3639,
+      "accepted_at_threshold": [
+        "support-policy#horario-de-atencion"
+      ],
+      "expected_accepted": true
+    },
+    {
+      "category": "paraphrase",
+      "query": "precio mensual del soporte gestionado",
+      "expected": "commercial-policy#tarifas",
+      "top1": "commercial-policy#tarifas",
+      "top1_score": 0.6085,
+      "top1_correct": true,
+      "expected_score": 0.6085,
+      "second_score": 0.4437,
+      "accepted_at_threshold": [
+        "commercial-policy#tarifas",
+        "support-policy#limites-del-agente-y-escalado",
+        "services#catalogo-de-servicios"
+      ],
+      "expected_accepted": true
+    },
+    {
+      "category": "paraphrase",
+      "query": "toda la oficina se ha quedado sin internet, ¿qué prioridad tiene?",
+      "expected": "support-policy#clasificacion-de-incidencias",
+      "top1": "support-policy#clasificacion-de-incidencias",
+      "top1_score": 0.4195,
+      "top1_correct": true,
+      "expected_score": 0.4195,
+      "second_score": 0.3917,
+      "accepted_at_threshold": [
+        "support-policy#clasificacion-de-incidencias",
+        "support-policy#limites-del-agente-y-escalado"
+      ],
+      "expected_accepted": true
+    },
+    {
+      "category": "paraphrase",
+      "query": "¿me podéis hacer un descuento?",
+      "expected": "commercial-policy#implantaciones-de-ia-y-descuentos",
+      "top1": "commercial-policy#implantaciones-de-ia-y-descuentos",
+      "top1_score": 0.4205,
+      "top1_correct": true,
+      "expected_score": 0.4205,
+      "second_score": 0.4122,
+      "accepted_at_threshold": [
+        "commercial-policy#implantaciones-de-ia-y-descuentos",
+        "commercial-policy#tarifas"
+      ],
+      "expected_accepted": true
+    },
+    {
+      "category": "paraphrase",
+      "query": "¿cuánto tardáis en resolver una incidencia?",
+      "expected": "support-policy#limites-del-agente-y-escalado",
+      "top1": "support-policy#limites-del-agente-y-escalado",
+      "top1_score": 0.4811,
+      "top1_correct": true,
+      "expected_score": 0.4811,
+      "second_score": 0.4209,
+      "accepted_at_threshold": [
+        "support-policy#limites-del-agente-y-escalado",
+        "support-policy#clasificacion-de-incidencias",
+        "services#nuevas-implantaciones-y-plazos"
+      ],
+      "expected_accepted": true
+    },
+    {
+      "category": "paraphrase",
+      "query": "quiero que borréis mis datos",
+      "expected": "security-policy#acciones-y-borrados",
+      "top1": "security-policy#acciones-y-borrados",
+      "top1_score": 0.4359,
+      "top1_correct": true,
+      "expected_score": 0.4359,
+      "second_score": 0.4352,
+      "accepted_at_threshold": [
+        "security-policy#acciones-y-borrados",
+        "security-policy#datos-sensibles-y-privacidad"
+      ],
+      "expected_accepted": true
+    },
+    {
+      "category": "paraphrase",
+      "query": "what are your support hours?",
+      "expected": "support-policy#horario-de-atencion",
+      "top1": "support-policy#horario-de-atencion",
+      "top1_score": 0.511,
+      "top1_correct": true,
+      "expected_score": 0.511,
+      "second_score": 0.3015,
+      "accepted_at_threshold": [
+        "support-policy#horario-de-atencion"
+      ],
+      "expected_accepted": true
+    },
+    {
+      "category": "unrelated",
+      "query": "receta de paella valenciana",
+      "expected": null,
+      "top1": "security-policy#datos-sensibles-y-privacidad",
+      "top1_score": 0.1674,
+      "top1_correct": null,
+      "expected_score": null,
+      "second_score": 0.1532,
+      "accepted_at_threshold": [],
+      "expected_accepted": null
+    },
+    {
+      "category": "unrelated",
+      "query": "¿Quién ganó el mundial de fútbol de 2010?",
+      "expected": null,
+      "top1": "support-policy#clasificacion-de-incidencias",
+      "top1_score": 0.1447,
+      "top1_correct": null,
+      "expected_score": null,
+      "second_score": 0.1181,
+      "accepted_at_threshold": [],
+      "expected_accepted": null
+    },
+    {
+      "category": "unrelated",
+      "query": "¿Cuál es la capital de Australia?",
+      "expected": null,
+      "top1": "services#nuevas-implantaciones-y-plazos",
+      "top1_score": 0.0664,
+      "top1_correct": null,
+      "expected_score": null,
+      "second_score": 0.0656,
+      "accepted_at_threshold": [],
+      "expected_accepted": null
+    },
+    {
+      "category": "unrelated",
+      "query": "cómo cambiar el aceite del coche",
+      "expected": null,
+      "top1": "support-policy#horario-de-atencion",
+      "top1_score": 0.2209,
+      "top1_correct": null,
+      "expected_score": null,
+      "second_score": 0.2133,
+      "accepted_at_threshold": [],
+      "expected_accepted": null
+    },
+    {
+      "category": "unrelated",
+      "query": "precio del bitcoin hoy",
+      "expected": null,
+      "top1": "commercial-policy#tarifas",
+      "top1_score": 0.2505,
+      "top1_correct": null,
+      "expected_score": null,
+      "second_score": 0.2015,
+      "accepted_at_threshold": [],
+      "expected_accepted": null
+    },
+    {
+      "category": "unrelated",
+      "query": "escríbeme un poema sobre el mar",
+      "expected": null,
+      "top1": "support-policy#horario-de-atencion",
+      "top1_score": 0.1681,
+      "top1_correct": null,
+      "expected_score": null,
+      "second_score": 0.1596,
+      "accepted_at_threshold": [],
+      "expected_accepted": null
+    },
+    {
+      "category": "absent_in_domain",
+      "query": "¿Tenéis oficina en Barcelona?",
+      "expected": null,
+      "top1": "support-policy#horario-de-atencion",
+      "top1_score": 0.369,
+      "top1_correct": null,
+      "expected_score": null,
+      "second_score": 0.3383,
+      "accepted_at_threshold": [],
+      "expected_accepted": null
+    },
+    {
+      "category": "absent_in_domain",
+      "query": "¿Cuál es vuestro número de teléfono?",
+      "expected": null,
+      "top1": "support-policy#horario-de-atencion",
+      "top1_score": 0.3067,
+      "top1_correct": null,
+      "expected_score": null,
+      "second_score": 0.2873,
+      "accepted_at_threshold": [],
+      "expected_accepted": null
+    },
+    {
+      "category": "absent_in_domain",
+      "query": "¿Desarrolláis aplicaciones móviles?",
+      "expected": null,
+      "top1": "security-policy#datos-sensibles-y-privacidad",
+      "top1_score": 0.3181,
+      "top1_correct": null,
+      "expected_score": null,
+      "second_score": 0.296,
+      "accepted_at_threshold": [],
+      "expected_accepted": null
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+# AGENT-01BF1 semantic reproduction of both HIGH findings on the ORIGINAL 8507448 code (old protocol: plain CONFIRMAR) (local: REAL PostgreSQL 17.11 + pgvector 0.8.7; TEST-ONLY scripted model; FakeN8n = TEST stand-in, NOT n8n)
+
+Scratch test, not committed (it asserts the OLD unsafe behaviour).
+
+
+OLD reprepare-vs-confirm: ticket_created priority executed: critical | the user had approved priority: normal
+.
+OLD api-confirm-vs-cancel: cancelled | He cancelado la acción pendiente. No se ha creado ningún ticket ni solicitud. | tickets created: 1 | chat state: [('cancelled',)]
+.
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+2 passed, 1 warning in 9.70s

@@ -1,0 +1,148 @@
+{
+  "id": "NexoLeadCreate01",
+  "name": "nexo-lead-create",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "0b7f6c2e-1a10-4c3e-9f00-000000000101",
+      "name": "Lead webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "5e1c9a3d-2b7f-4a61-9d1e-000000000201",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nexo-lead-create",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "0b7f6c2e-1a10-4c3e-9f00-000000000102",
+      "name": "Envelope complete?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [240, 0],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.body.pending_action_id }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty", "singleValue": true }
+            },
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.body.idempotency_key }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty", "singleValue": true }
+            },
+            {
+              "id": "c3",
+              "leftValue": "={{ $json.body.payload_hash }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty", "singleValue": true }
+            },
+            {
+              "id": "c4",
+              "leftValue": "={{ $json.body.lead }}",
+              "rightValue": "",
+              "operator": { "type": "object", "operation": "notEmpty", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "0b7f6c2e-1a10-4c3e-9f00-000000000103",
+      "name": "Create lead in backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, -100],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:8000/internal/leads",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Idempotency-Key", "value": "={{ $json.body.idempotency_key }}" },
+            { "name": "X-Request-ID", "value": "={{ $json.headers['x-request-id'] }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ pending_action_id: $json.body.pending_action_id, payload_hash: $json.body.payload_hash, lead: $json.body.lead, workflow_execution_id: $execution.id }) }}",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "NexoLeadWriter01",
+          "name": "nexo-lead-writer"
+        }
+      }
+    },
+    {
+      "id": "0b7f6c2e-1a10-4c3e-9f00-000000000104",
+      "name": "Return backend result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [720, -100],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      }
+    },
+    {
+      "id": "0b7f6c2e-1a10-4c3e-9f00-000000000105",
+      "name": "Reject incomplete envelope",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [480, 100],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ code: 'invalid_envelope', detail: 'Missing pending_action_id, idempotency_key, payload_hash or lead' }) }}",
+        "options": {
+          "responseCode": 400
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Lead webhook": {
+      "main": [[{ "node": "Envelope complete?", "type": "main", "index": 0 }]]
+    },
+    "Envelope complete?": {
+      "main": [
+        [{ "node": "Create lead in backend", "type": "main", "index": 0 }],
+        [{ "node": "Reject incomplete envelope", "type": "main", "index": 0 }]
+      ]
+    },
+    "Create lead in backend": {
+      "main": [[{ "node": "Return backend result", "type": "main", "index": 0 }]]
+    }
+  }
+}

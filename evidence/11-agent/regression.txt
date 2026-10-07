@@ -1,0 +1,27 @@
+# AGENT-01A regression (2026-10-07). Groups 1-8 partition full runs 1-2 (61+35+27+24+53+44+41+32 = 317).
+
+AGENT-01A: test_agent.py (+ live smoke, opt-in skipped)
+    ================== 61 passed, 1 skipped, 1 warning in 26.30s ==================
+RAG-01/01F1: test_rag, test_rag_atomic (+ live, skipped)
+    ================== 35 passed, 1 skipped, 1 warning in 23.21s ==================
+migrations/startup/readiness
+    ======================= 27 passed, 1 warning in 25.78s ========================
+APP-01: business API, health, config
+    ======================== 24 passed, 1 warning in 9.43s ========================
+APP-02: tickets, concurrency, traceability
+    ======================= 53 passed, 1 warning in 36.70s ========================
+APP-03A: handoffs
+    ======================= 44 passed, 1 warning in 19.15s ========================
+APP-03B: leads
+    ======================= 41 passed, 1 warning in 26.80s ========================
+static/compose (before the chat-model compose test was added)
+    ======================== 32 passed, 1 warning in 0.15s ========================
+FULL run 1
+    ============ 317 passed, 7 skipped, 1 warning in 122.59s (0:02:02) ============
+FULL run 2
+    ============ 317 passed, 7 skipped, 1 warning in 122.69s (0:02:02) ============
+FULL run 3 (final; includes the new compose test)
+    ============ 318 passed, 7 skipped, 1 warning in 122.32s (0:02:02) ============
+
+Skipped = opt-in only: evidence dumps (NEXO_EVIDENCE_DIR) and live OpenRouter smokes (NEXO_LIVE_OPENROUTER=1).
+The live agent smoke was run separately: live-chat-smoke.json (14/14) and live-chat-smoke-run1.json (first run, 12/13, see live-smoke.md).

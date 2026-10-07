@@ -1,0 +1,457 @@
+# RAG-01V1 VM run — REAL VM (Ubuntu 24.04.4, Docker 29.8.2) / REAL pgvector 0.8.7 (official image) / REAL OpenRouter embeddings
+# Candidate fce4580cdfdcfa569ec43ee4b40c56caca2415db. Harness: evidence/10-rag/vm-validate.sh (one owner-run SSH session, 2026-10-07).
+# Sanitized copy of the raw log: 124 docker image-pull progress lines removed; nothing else changed.
+# Secret scan of the raw log: OpenRouter key 0 occurrences (VM-generated secrets were checked on the VM, section 19).
+# Section 17 uses TEST-ONLY providers in a scratch database (labelled); every other section uses the REAL OpenRouter API.
+
+===== 0. PRE-CHECKS =====
+pre-checks passed
+$ docker system df
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          0         0         0B        0B
+Containers      0         0         0B        0B
+Local Volumes   0         0         0B        0B
+Build Cache     0         0         0B        0B
+$ ss -tlnH
+LISTEN 0      4096         0.0.0.0:9922 0.0.0.0:*
+LISTEN 0      4096      127.0.0.54:53   0.0.0.0:*
+LISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*
+LISTEN 0      4096            [::]:9922    [::]:*
+
+===== 1. RECEIVE OPENROUTER KEY (stdin, never printed) + BUNDLE =====
+key received on stdin: format ok, stored in a 600-mode file (value not shown)
+CHECK PASS: bundle sha256 matches the local bundle
+
+===== 2. CHECKOUT EXACT COMMIT =====
+$ git clone -q /home/user/nexo-rag01v1/rag.bundle /home/user/nexo-rag01v1/repo
+warning: remote HEAD refers to nonexistent ref, unable to checkout
+CHECK PASS: checked-out commit is fce4580cdfdcfa569ec43ee4b40c56caca2415db
+CHECK PASS: working tree clean (no edits)
+
+===== 3. VM-LOCAL .env (generated secrets + OpenRouter key from the 600-mode file; never printed) =====
+$ stat -c %A %n .env /home/user/nexo-rag01v1/ork
+-rw------- .env
+-rw------- /home/user/nexo-rag01v1/ork
+.env names: POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD AUTH_TOKEN_CUSTOMER_A AUTH_TOKEN_CUSTOMER_B N8N_ENCRYPTION_KEY LEAD_WRITER_TOKEN_SHA256 OPENROUTER_API_KEY 
+NOTE: N8N_ENCRYPTION_KEY / LEAD_WRITER_TOKEN_SHA256 are random placeholders required by compose interpolation; n8n is NOT started.
+
+===== 4. CONFIG + BUILD + START (db + backend only) =====
+CHECK PASS: docker compose config valid (output not printed: it would contain secrets)
+#13 resolving provenance for metadata file
+#13 DONE 0.0s
+ Image nexo-backend:0.1.0 Built 
+$ docker compose up -d --wait --wait-timeout 300 db backend
+ Image pgvector/pgvector:0.8.7-pg17-bookworm Pulling 
+ Image pgvector/pgvector:0.8.7-pg17-bookworm Pulled 
+ Network nexo_automation Creating 
+ Network nexo_automation Creating 
+ Volume nexo_db_data Creating 
+ Volume nexo_db_data Creating 
+ Network nexo_internal Creating 
+ Network nexo_internal Creating 
+ Volume nexo_db_data Created 
+ Volume nexo_db_data Created 
+ Network nexo_internal Created 
+ Network nexo_internal Created 
+ Container nexo-db-1 Creating 
+ Network nexo_automation Created 
+ Network nexo_automation Created 
+ Container nexo-db-1 Created 
+ Container nexo-backend-1 Creating 
+ Container nexo-backend-1 Created 
+ Container nexo-db-1 Starting 
+ Container nexo-db-1 Started 
+ Container nexo-db-1 Waiting 
+ Container nexo-db-1 Healthy 
+ Container nexo-backend-1 Starting 
+ Container nexo-backend-1 Started 
+ Container nexo-db-1 Waiting 
+ Container nexo-backend-1 Waiting 
+ Container nexo-db-1 Healthy 
+ Container nexo-backend-1 Healthy 
+$ docker compose ps --format table {{.Service}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}
+SERVICE   IMAGE                                   STATUS                    PORTS
+backend   nexo-backend:0.1.0                      Up 5 seconds (healthy)    127.0.0.1:8000->8000/tcp
+db        pgvector/pgvector:0.8.7-pg17-bookworm   Up 11 seconds (healthy)   5432/tcp
+CHECK PASS: db healthy
+CHECK PASS: backend healthy
+CHECK PASS: n8n NOT running (not needed for RAG)
+--- backend startup:
+migrations applied: ['0001_initial_schema', '0002_synthetic_seed', '0003_priority_and_ticket_confirmation', '0004_one_pending_action_per_group', '0005_handoffs', '0006_leads', '0007_knowledge']; schema version: 0007_knowledge
+synthetic credentials provisioned for: CUSTOMER_A, CUSTOMER_B
+service credentials provisioned: n8n-lead-writer
+
+===== 5. MIGRATIONS 0001-0007 + CHECKSUMS + PGVECTOR =====
+0001_initial_schema 7d6223e67e14314ed18f90acb331e38187af75f0991dfd46592c88d475f60480
+0002_synthetic_seed 8c062cedd865ff1f2dbf38b8aeb6e679c470567bc60eebcfa09fdf5e8bc28e72
+0003_priority_and_ticket_confirmation a7f58cec1f47abe42642c8cb8764b33dfe24cfe73378109271fd67c62464666a
+0004_one_pending_action_per_group 01714a8c50475b81004ba8c5fc0ec160b527b45a07a1f489bbfd2832ee4b068c
+0005_handoffs ee76012c0f06a9f4b6706361c80b1a5ab43e21806b113f6a79b5584cca76db8d
+0006_leads 20a239b0126833e9e9b5c7922b9d391d27db44fd54f1fd6192b53b0b372b0fce
+0007_knowledge a678843599409496a3f056f0d579392fe45fb277e26252a269884d3ae0e3a264
+CHECK PASS: schema_migrations == files 0001..0007 (identical checksums)
+server 17.11 (Debian 17.11-1.pgdg12+2) | vector 0.8.7
+CHECK PASS: pgvector extension 0.8.7 installed
+knowledge_chunks.embedding: vector(1536)
+
+===== 6. NETWORK / EXPOSURE =====
+$ ss -tlnH
+LISTEN 0      4096       127.0.0.1:8000 0.0.0.0:*
+LISTEN 0      4096         0.0.0.0:9922 0.0.0.0:*
+LISTEN 0      4096      127.0.0.54:53   0.0.0.0:*
+LISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*
+LISTEN 0      4096            [::]:9922    [::]:*
+CHECK PASS: backend only 127.0.0.1:8000
+CHECK PASS: db no published port
+CHECK PASS: no :5432 host listener
+CHECK PASS: no :5678 host listener (n8n not started)
+CHECK PASS: public listeners only :9922
+
+===== 7. KNOWLEDGE MOUNT (canonical corpus, read-only) =====
+<checkout>/knowledge -> /srv/knowledge rw=false
+CHECK PASS: mount ./knowledge -> /srv/knowledge is read-only
+CHECK PASS: write inside /srv/knowledge is refused
+--- files inside the container (ls -A /srv/knowledge):
+01_services.md
+02_support_policy.md
+03_commercial_policy.md
+04_security_policy.md
+CHECK PASS: exactly the 4 canonical files, nothing else (incl. hidden)
+01_services.md container=c558f94a29885fc9ce67e5f5cbf53cf2e374348e95403386af4d1944f6d4f6b0 commit=c558f94a29885fc9ce67e5f5cbf53cf2e374348e95403386af4d1944f6d4f6b0
+CHECK PASS: 01_services.md in container == blob in fce4580cdfdcfa569ec43ee4b40c56caca2415db
+02_support_policy.md container=a2955c0c16346bf113a00b8b677e4ac76421eaa6198576b4392503ec291626bb commit=a2955c0c16346bf113a00b8b677e4ac76421eaa6198576b4392503ec291626bb
+CHECK PASS: 02_support_policy.md in container == blob in fce4580cdfdcfa569ec43ee4b40c56caca2415db
+03_commercial_policy.md container=6b9ffe106baeeb978414c667b783de5cc3540b2262c8aa005dedefe74f21e7cf commit=6b9ffe106baeeb978414c667b783de5cc3540b2262c8aa005dedefe74f21e7cf
+CHECK PASS: 03_commercial_policy.md in container == blob in fce4580cdfdcfa569ec43ee4b40c56caca2415db
+04_security_policy.md container=65dc1544a629d2abd5188db3b6bbe31f779ec45ae568f9eaf5fe85fc08b491e1 commit=65dc1544a629d2abd5188db3b6bbe31f779ec45ae568f9eaf5fe85fc08b491e1
+CHECK PASS: 04_security_policy.md in container == blob in fce4580cdfdcfa569ec43ee4b40c56caca2415db
+
+===== 8. DRIVER (host python3 stdlib; secrets read from files, never printed) =====
+driver ready
+
+===== 9. HEALTH =====
+  GET /health: 200 {"status": "ok"}
+CHECK PASS: /health 200
+  GET /health/ready: 200 {"status": "ready", "database": "ok", "schema_version": "0007_knowledge"}
+CHECK PASS: /health/ready 200
+PHASE health: PASS
+
+===== 10. REAL INGESTION (REAL OpenRouter embeddings -> REAL pgvector) =====
+  index before: 0 documents, 0 chunks
+  $ python -m app.rag_ingest  (exit 0)
+    rag_ingest {"chunks": 10, "deleted_chunks": 0, "deleted_documents": 0, "documents": 4, "embedded": 10, "model": "openai/text-embedding-3-small", "new": 4, "unchanged": 0, "updated": 0}
+CHECK PASS: ingest output: no key, no embeddings/long float lists, single short line
+CHECK PASS: first ingestion exit 0 with REAL OpenRouter
+CHECK PASS: report: model openai/text-embedding-3-small, 4 new documents, 10 chunks, 10 embedded, nothing deleted  [{"chunks": 10, "deleted_chunks": 0, "deleted_documents": 0, "documents": 4, "embedded": 10, "model": "openai/text-embedding-3-small", "new": 4, "unchanged": 0, "updated": 0}]
+  index facts: documents=4 chunks=10 distinct_chunk_keys=10 chunk_models=1 model=openai/text-embedding-3-small dims=1536 doc_models=1
+CHECK PASS: 4 documents, 10 chunks, no duplicate chunk keys
+CHECK PASS: every embedding has 1536 dimensions
+CHECK PASS: single model openai/text-embedding-3-small (chunks + documents)
+  indexed rows (no vectors printed): chunk_key | ordinal | section | chunk sha256(12) | document reference | doc sha256(12)
+    services#catalogo-de-servicios|0|Catálogo de servicios|77fe54562998|01_services.md|c558f94a2988
+    services#nuevas-implantaciones-y-plazos|1|Nuevas implantaciones y plazos|da0a197383a0|01_services.md|c558f94a2988
+    support-policy#horario-de-atencion|0|Horario de atención|304d5875e6b5|02_support_policy.md|a2955c0c1634
+    support-policy#clasificacion-de-incidencias|1|Clasificación de incidencias|72b693d37b34|02_support_policy.md|a2955c0c1634
+    support-policy#limites-del-agente-y-escalado|2|Límites del agente y escalado|4d824b5f9f29|02_support_policy.md|a2955c0c1634
+    commercial-policy#tarifas|0|Tarifas|46645bf32612|03_commercial_policy.md|6b9ffe106bae
+    commercial-policy#implantaciones-de-ia-y-descuentos|1|Implantaciones de IA y descuentos|e0e0042be2d5|03_commercial_policy.md|6b9ffe106bae
+    security-policy#datos-sensibles-y-privacidad|0|Datos sensibles y privacidad|5840d014b8c3|04_security_policy.md|65dc1544a629
+    security-policy#documentos-recuperados-y-secretos|1|Documentos recuperados y secretos|494712c61b15|04_security_policy.md|65dc1544a629
+    security-policy#acciones-y-borrados|2|Acciones y borrados|72870b383438|04_security_policy.md|65dc1544a629
+PHASE ingest1: PASS
+
+===== 11. RE-INGEST IDEMPOTENCY =====
+  $ python -m app.rag_ingest  (exit 0)
+    rag_ingest {"chunks": 10, "deleted_chunks": 0, "deleted_documents": 0, "documents": 4, "embedded": 0, "model": "openai/text-embedding-3-small", "new": 0, "unchanged": 4, "updated": 0}
+CHECK PASS: ingest output: no key, no embeddings/long float lists, single short line
+CHECK PASS: re-ingest exit 0
+CHECK PASS: re-ingest: 0 embedded, 4 unchanged, 0 new/updated/deleted, 10 chunks  [{"chunks": 10, "deleted_chunks": 0, "deleted_documents": 0, "documents": 4, "embedded": 0, "model": "openai/text-embedding-3-small", "new": 0, "unchanged": 4, "updated": 0}]
+CHECK PASS: re-ingest: documents + chunks byte-identical (ids, hashes, models, vector md5, updated_at)
+CHECK PASS: still 4 documents / 10 chunks / 10 distinct keys
+PHASE ingest2: PASS
+
+===== 12. SUPPORTED RETRIEVAL (CUSTOMER_A, loopback) =====
+  [A schedule] query='¿Cuál es el horario de atención del soporte?' -> HTTP 200 evidence=found best_score=0.6988 min_score=0.39 model=openai/text-embedding-3-small accepted=['support-policy#horario-de-atencion', 'support-policy#limites-del-agente-y-escalado', 'services#catalogo-de-servicios']
+    02_support_policy.md § Horario de atención | source_id=support-policy | chunk_id=support-policy#horario-de-atencion | version=a2955c0c1634 | chunk_sha=304d5875e6b5 | score=0.6988
+    02_support_policy.md § Límites del agente y escalado | source_id=support-policy | chunk_id=support-policy#limites-del-agente-y-escalado | version=a2955c0c1634 | chunk_sha=4d824b5f9f29 | score=0.4761
+    01_services.md § Catálogo de servicios | source_id=services | chunk_id=services#catalogo-de-servicios | version=c558f94a2988 | chunk_sha=77fe54562998 | score=0.4703
+CHECK PASS: A schedule: evidence=found, top-1 = support-policy#horario-de-atencion, score >= threshold
+CHECK PASS: A schedule: reference = '<real file> § <section>'  [02_support_policy.md § Horario de atención]
+CHECK PASS: A schedule: no generated answer field
+  [B services] query='¿Qué servicios ofrecéis?' -> HTTP 200 evidence=found best_score=0.5169 min_score=0.39 model=openai/text-embedding-3-small accepted=['services#catalogo-de-servicios', 'commercial-policy#tarifas']
+    01_services.md § Catálogo de servicios | source_id=services | chunk_id=services#catalogo-de-servicios | version=c558f94a2988 | chunk_sha=77fe54562998 | score=0.5169
+    03_commercial_policy.md § Tarifas | source_id=commercial-policy | chunk_id=commercial-policy#tarifas | version=6b9ffe106bae | chunk_sha=46645bf32612 | score=0.4432
+CHECK PASS: B services: evidence=found, top-1 = services#catalogo-de-servicios, score >= threshold
+CHECK PASS: B services: reference = '<real file> § <section>'  [01_services.md § Catálogo de servicios]
+CHECK PASS: B services: no generated answer field
+  [C commercial] query='¿Cuánto cuesta el diagnóstico inicial?' -> HTTP 200 evidence=found best_score=0.5372 min_score=0.39 model=openai/text-embedding-3-small accepted=['commercial-policy#tarifas']
+    03_commercial_policy.md § Tarifas | source_id=commercial-policy | chunk_id=commercial-policy#tarifas | version=6b9ffe106bae | chunk_sha=46645bf32612 | score=0.5372
+CHECK PASS: C commercial: evidence=found, top-1 = commercial-policy#tarifas, score >= threshold
+CHECK PASS: C commercial: reference = '<real file> § <section>'  [03_commercial_policy.md § Tarifas]
+CHECK PASS: C commercial: no generated answer field
+  [critical incident] query='¿Cuándo se considera crítica una incidencia?' -> HTTP 200 evidence=found best_score=0.5049 min_score=0.39 model=openai/text-embedding-3-small accepted=['support-policy#clasificacion-de-incidencias', 'support-policy#limites-del-agente-y-escalado']
+    02_support_policy.md § Clasificación de incidencias | source_id=support-policy | chunk_id=support-policy#clasificacion-de-incidencias | version=a2955c0c1634 | chunk_sha=72b693d37b34 | score=0.5049
+    02_support_policy.md § Límites del agente y escalado | source_id=support-policy | chunk_id=support-policy#limites-del-agente-y-escalado | version=a2955c0c1634 | chunk_sha=4d824b5f9f29 | score=0.401
+CHECK PASS: critical incident: evidence=found and expected chunk accepted  [top-1 support-policy#clasificacion-de-incidencias]
+CHECK PASS: critical incident: no generated answer field
+  [agent limits] query='¿El agente puede reiniciar un servidor?' -> HTTP 200 evidence=found best_score=0.5457 min_score=0.39 model=openai/text-embedding-3-small accepted=['support-policy#limites-del-agente-y-escalado']
+    02_support_policy.md § Límites del agente y escalado | source_id=support-policy | chunk_id=support-policy#limites-del-agente-y-escalado | version=a2955c0c1634 | chunk_sha=4d824b5f9f29 | score=0.5457
+CHECK PASS: agent limits: evidence=found and expected chunk accepted  [top-1 support-policy#limites-del-agente-y-escalado]
+CHECK PASS: agent limits: no generated answer field
+  [new deployment] query='¿Cuándo estará lista una nueva implantación?' -> HTTP 200 evidence=found best_score=0.6806 min_score=0.39 model=openai/text-embedding-3-small accepted=['services#nuevas-implantaciones-y-plazos']
+    01_services.md § Nuevas implantaciones y plazos | source_id=services | chunk_id=services#nuevas-implantaciones-y-plazos | version=c558f94a2988 | chunk_sha=da0a197383a0 | score=0.6806
+CHECK PASS: new deployment: evidence=found and expected chunk accepted  [top-1 services#nuevas-implantaciones-y-plazos]
+CHECK PASS: new deployment: no generated answer field
+  [AI pricing] query='¿Cuánto cuesta una implantación de IA?' -> HTTP 200 evidence=found best_score=0.5723 min_score=0.39 model=openai/text-embedding-3-small accepted=['commercial-policy#implantaciones-de-ia-y-descuentos', 'services#nuevas-implantaciones-y-plazos']
+    03_commercial_policy.md § Implantaciones de IA y descuentos | source_id=commercial-policy | chunk_id=commercial-policy#implantaciones-de-ia-y-descuentos | version=6b9ffe106bae | chunk_sha=e0e0042be2d5 | score=0.5723
+    01_services.md § Nuevas implantaciones y plazos | source_id=services | chunk_id=services#nuevas-implantaciones-y-plazos | version=c558f94a2988 | chunk_sha=da0a197383a0 | score=0.4608
+CHECK PASS: AI pricing: evidence=found and expected chunk accepted  [top-1 commercial-policy#implantaciones-de-ia-y-descuentos]
+CHECK PASS: AI pricing: no generated answer field
+  [paraphrase: managed support price] query='precio mensual del soporte gestionado' -> HTTP 200 evidence=found best_score=0.6086 min_score=0.39 model=openai/text-embedding-3-small accepted=['commercial-policy#tarifas', 'support-policy#limites-del-agente-y-escalado', 'services#catalogo-de-servicios']
+    03_commercial_policy.md § Tarifas | source_id=commercial-policy | chunk_id=commercial-policy#tarifas | version=6b9ffe106bae | chunk_sha=46645bf32612 | score=0.6086
+    02_support_policy.md § Límites del agente y escalado | source_id=support-policy | chunk_id=support-policy#limites-del-agente-y-escalado | version=a2955c0c1634 | chunk_sha=4d824b5f9f29 | score=0.4438
+    01_services.md § Catálogo de servicios | source_id=services | chunk_id=services#catalogo-de-servicios | version=c558f94a2988 | chunk_sha=77fe54562998 | score=0.408
+CHECK PASS: paraphrase: managed support price: evidence=found and expected chunk accepted  [top-1 commercial-policy#tarifas]
+CHECK PASS: paraphrase: managed support price: no generated answer field
+  [paraphrase: delete my data] query='quiero que borréis mis datos' -> HTTP 200 evidence=found best_score=0.4359 min_score=0.39 model=openai/text-embedding-3-small accepted=['security-policy#acciones-y-borrados', 'security-policy#datos-sensibles-y-privacidad']
+    04_security_policy.md § Acciones y borrados | source_id=security-policy | chunk_id=security-policy#acciones-y-borrados | version=65dc1544a629 | chunk_sha=72870b383438 | score=0.4359
+    04_security_policy.md § Datos sensibles y privacidad | source_id=security-policy | chunk_id=security-policy#datos-sensibles-y-privacidad | version=65dc1544a629 | chunk_sha=5840d014b8c3 | score=0.4352
+CHECK PASS: paraphrase: delete my data: evidence=found and expected chunk accepted  [top-1 security-policy#acciones-y-borrados]
+CHECK PASS: paraphrase: delete my data: no generated answer field
+  [password (calibration: expected at rank 2)] query='¿Puedo darle mi contraseña al agente?' -> HTTP 200 evidence=found best_score=0.4503 min_score=0.39 model=openai/text-embedding-3-small accepted=['support-policy#limites-del-agente-y-escalado', 'security-policy#datos-sensibles-y-privacidad', 'security-policy#acciones-y-borrados']
+    02_support_policy.md § Límites del agente y escalado | source_id=support-policy | chunk_id=support-policy#limites-del-agente-y-escalado | version=a2955c0c1634 | chunk_sha=4d824b5f9f29 | score=0.4503
+    04_security_policy.md § Datos sensibles y privacidad | source_id=security-policy | chunk_id=security-policy#datos-sensibles-y-privacidad | version=65dc1544a629 | chunk_sha=5840d014b8c3 | score=0.4371
+    04_security_policy.md § Acciones y borrados | source_id=security-policy | chunk_id=security-policy#acciones-y-borrados | version=65dc1544a629 | chunk_sha=72870b383438 | score=0.4215
+CHECK PASS: password (calibration: expected at rank 2): evidence=found and expected chunk accepted  [top-1 support-policy#limites-del-agente-y-escalado]
+CHECK PASS: password (calibration: expected at rank 2): no generated answer field
+PHASE retrieval: PASS
+
+===== 13. NO-EVIDENCE MATRIX =====
+  [absent in domain (REQUIRED)] query='¿Tenéis oficina en Barcelona?' -> HTTP 200 evidence=insufficient matches=[] best_score=0.369 min_score=0.39
+CHECK PASS: absent in domain (REQUIRED) '¿Tenéis oficina en Barcelona?': evidence=insufficient, matches=[], no answer, best_score < min_score
+  [absent in domain] query='¿Cuál es vuestro número de teléfono?' -> HTTP 200 evidence=insufficient matches=[] best_score=0.3067 min_score=0.39
+CHECK PASS: absent in domain '¿Cuál es vuestro número de teléfono?': evidence=insufficient, matches=[], no answer, best_score < min_score
+  [absent in domain] query='¿Desarrolláis aplicaciones móviles?' -> HTTP 200 evidence=insufficient matches=[] best_score=0.3181 min_score=0.39
+CHECK PASS: absent in domain '¿Desarrolláis aplicaciones móviles?': evidence=insufficient, matches=[], no answer, best_score < min_score
+  [unrelated] query='receta de paella valenciana' -> HTTP 200 evidence=insufficient matches=[] best_score=0.1674 min_score=0.39
+CHECK PASS: unrelated 'receta de paella valenciana': evidence=insufficient, matches=[], no answer, best_score < min_score
+  [unrelated] query='precio del bitcoin hoy' -> HTTP 200 evidence=insufficient matches=[] best_score=0.2499 min_score=0.39
+CHECK PASS: unrelated 'precio del bitcoin hoy': evidence=insufficient, matches=[], no answer, best_score < min_score
+  [unrelated] query='¿Cuál es la capital de Australia?' -> HTTP 200 evidence=insufficient matches=[] best_score=0.0665 min_score=0.39
+CHECK PASS: unrelated '¿Cuál es la capital de Australia?': evidence=insufficient, matches=[], no answer, best_score < min_score
+PHASE insufficient: PASS
+
+===== 14. REFERENCE INTEGRITY (API -> chunk row -> document row -> mounted file -> commit blob) =====
+  [A schedule] API 02_support_policy.md § Horario de atención chunk_id=support-policy#horario-de-atencion version=a2955c0c1634 chunk_sha=304d5875e6b5
+     -> chunk row id=3 sha=304d5875e6b5 model=openai/text-embedding-3-small | sha256(DB content)=304d5875e6b5 | API text == DB content: t
+     -> document row id=2 source_id=support-policy reference=02_support_policy.md path=02_support_policy.md sha=a2955c0c1634
+     -> mounted file /srv/knowledge/02_support_policy.md: sha256=a2955c0c1634 | commit blob sha256=a2955c0c1634 | re-parsed in container: reference=02_support_policy.md doc_sha=a2955c0c1634 chunk_sha=304d5875e6b5
+CHECK PASS: [A schedule] support-policy#horario-de-atencion: API filename == document row reference == path == real mounted file name
+CHECK PASS: [A schedule] support-policy#horario-de-atencion: version == doc row sha == sha256(mounted file) == sha256(commit blob)
+CHECK PASS: [A schedule] support-policy#horario-de-atencion: chunk_sha == row sha == sha256(DB content) == re-parsed file chunk sha; API text == DB content
+  [A schedule] API 02_support_policy.md § Límites del agente y escalado chunk_id=support-policy#limites-del-agente-y-escalado version=a2955c0c1634 chunk_sha=4d824b5f9f29
+     -> chunk row id=5 sha=4d824b5f9f29 model=openai/text-embedding-3-small | sha256(DB content)=4d824b5f9f29 | API text == DB content: t
+     -> document row id=2 source_id=support-policy reference=02_support_policy.md path=02_support_policy.md sha=a2955c0c1634
+     -> mounted file /srv/knowledge/02_support_policy.md: sha256=a2955c0c1634 | commit blob sha256=a2955c0c1634 | re-parsed in container: reference=02_support_policy.md doc_sha=a2955c0c1634 chunk_sha=4d824b5f9f29
+CHECK PASS: [A schedule] support-policy#limites-del-agente-y-escalado: API filename == document row reference == path == real mounted file name
+CHECK PASS: [A schedule] support-policy#limites-del-agente-y-escalado: version == doc row sha == sha256(mounted file) == sha256(commit blob)
+CHECK PASS: [A schedule] support-policy#limites-del-agente-y-escalado: chunk_sha == row sha == sha256(DB content) == re-parsed file chunk sha; API text == DB content
+  [A schedule] API 01_services.md § Catálogo de servicios chunk_id=services#catalogo-de-servicios version=c558f94a2988 chunk_sha=77fe54562998
+     -> chunk row id=1 sha=77fe54562998 model=openai/text-embedding-3-small | sha256(DB content)=77fe54562998 | API text == DB content: t
+     -> document row id=1 source_id=services reference=01_services.md path=01_services.md sha=c558f94a2988
+     -> mounted file /srv/knowledge/01_services.md: sha256=c558f94a2988 | commit blob sha256=c558f94a2988 | re-parsed in container: reference=01_services.md doc_sha=c558f94a2988 chunk_sha=77fe54562998
+CHECK PASS: [A schedule] services#catalogo-de-servicios: API filename == document row reference == path == real mounted file name
+CHECK PASS: [A schedule] services#catalogo-de-servicios: version == doc row sha == sha256(mounted file) == sha256(commit blob)
+CHECK PASS: [A schedule] services#catalogo-de-servicios: chunk_sha == row sha == sha256(DB content) == re-parsed file chunk sha; API text == DB content
+  [B services] API 01_services.md § Catálogo de servicios chunk_id=services#catalogo-de-servicios version=c558f94a2988 chunk_sha=77fe54562998
+     -> chunk row id=1 sha=77fe54562998 model=openai/text-embedding-3-small | sha256(DB content)=77fe54562998 | API text == DB content: t
+     -> document row id=1 source_id=services reference=01_services.md path=01_services.md sha=c558f94a2988
+     -> mounted file /srv/knowledge/01_services.md: sha256=c558f94a2988 | commit blob sha256=c558f94a2988 | re-parsed in container: reference=01_services.md doc_sha=c558f94a2988 chunk_sha=77fe54562998
+CHECK PASS: [B services] services#catalogo-de-servicios: API filename == document row reference == path == real mounted file name
+CHECK PASS: [B services] services#catalogo-de-servicios: version == doc row sha == sha256(mounted file) == sha256(commit blob)
+CHECK PASS: [B services] services#catalogo-de-servicios: chunk_sha == row sha == sha256(DB content) == re-parsed file chunk sha; API text == DB content
+  [B services] API 03_commercial_policy.md § Tarifas chunk_id=commercial-policy#tarifas version=6b9ffe106bae chunk_sha=46645bf32612
+     -> chunk row id=6 sha=46645bf32612 model=openai/text-embedding-3-small | sha256(DB content)=46645bf32612 | API text == DB content: t
+     -> document row id=3 source_id=commercial-policy reference=03_commercial_policy.md path=03_commercial_policy.md sha=6b9ffe106bae
+     -> mounted file /srv/knowledge/03_commercial_policy.md: sha256=6b9ffe106bae | commit blob sha256=6b9ffe106bae | re-parsed in container: reference=03_commercial_policy.md doc_sha=6b9ffe106bae chunk_sha=46645bf32612
+CHECK PASS: [B services] commercial-policy#tarifas: API filename == document row reference == path == real mounted file name
+CHECK PASS: [B services] commercial-policy#tarifas: version == doc row sha == sha256(mounted file) == sha256(commit blob)
+CHECK PASS: [B services] commercial-policy#tarifas: chunk_sha == row sha == sha256(DB content) == re-parsed file chunk sha; API text == DB content
+  [C commercial] API 03_commercial_policy.md § Tarifas chunk_id=commercial-policy#tarifas version=6b9ffe106bae chunk_sha=46645bf32612
+     -> chunk row id=6 sha=46645bf32612 model=openai/text-embedding-3-small | sha256(DB content)=46645bf32612 | API text == DB content: t
+     -> document row id=3 source_id=commercial-policy reference=03_commercial_policy.md path=03_commercial_policy.md sha=6b9ffe106bae
+     -> mounted file /srv/knowledge/03_commercial_policy.md: sha256=6b9ffe106bae | commit blob sha256=6b9ffe106bae | re-parsed in container: reference=03_commercial_policy.md doc_sha=6b9ffe106bae chunk_sha=46645bf32612
+CHECK PASS: [C commercial] commercial-policy#tarifas: API filename == document row reference == path == real mounted file name
+CHECK PASS: [C commercial] commercial-policy#tarifas: version == doc row sha == sha256(mounted file) == sha256(commit blob)
+CHECK PASS: [C commercial] commercial-policy#tarifas: chunk_sha == row sha == sha256(DB content) == re-parsed file chunk sha; API text == DB content
+PHASE references: PASS
+
+===== 15. 120 € -> 150 € UPDATE DEMO (TEMPORARY copy only; then restore canonical) =====
+  1. temporary copy /home/user/nexo-rag01v1/kdemo: occurrences of '120 €' in 03_commercial_policy.md = 1
+CHECK PASS: 1. temporary copy contains the canonical 120 € exactly once
+  copied to container /tmp/kdemo: 01_services.md 02_support_policy.md 03_commercial_policy.md 04_security_policy.md
+  $ python -m app.rag_ingest --dir /tmp/kdemo  (exit 0)
+    rag_ingest {"chunks": 10, "deleted_chunks": 0, "deleted_documents": 0, "documents": 4, "embedded": 0, "model": "openai/text-embedding-3-small", "new": 0, "unchanged": 4, "updated": 0}
+CHECK PASS: ingest output: no key, no embeddings/long float lists, single short line
+CHECK PASS: 2. ingest temporary copy (identical content): 0 embedded, 4 unchanged  [{"chunks": 10, "deleted_chunks": 0, "deleted_documents": 0, "documents": 4, "embedded": 0, "model": "openai/text-embedding-3-small", "new": 0, "unchanged": 4, "updated": 0}]
+  3. retrieval before: 03_commercial_policy.md § Tarifas chunk=commercial-policy#tarifas score=0.5372 text excerpt='gnóstico inicial: 120 € más IVA. Soporte gestionado: desde 250 €/mes más IVA, sujeto a alcance.'
+CHECK PASS: 3. tariff chunk retrieved and contains 120 €
+  4. edit applied ONLY to the temporary copy; diff canonical -> temporary:
+     10c10
+     < Diagnóstico inicial: 120 € más IVA. Soporte gestionado: desde 250 €/mes más IVA, sujeto a alcance.
+     ---
+     > Diagnóstico inicial: 150 € más IVA. Soporte gestionado: desde 250 €/mes más IVA, sujeto a alcance.
+CHECK PASS: 4. exactly one line changed (120 € -> 150 €) in the temporary copy
+CHECK PASS: 4. committed canonical file untouched
+  copied to container /tmp/kdemo: 01_services.md 02_support_policy.md 03_commercial_policy.md 04_security_policy.md
+  $ python -m app.rag_ingest --dir /tmp/kdemo  (exit 0)
+    rag_ingest {"chunks": 10, "deleted_chunks": 0, "deleted_documents": 0, "documents": 4, "embedded": 1, "model": "openai/text-embedding-3-small", "new": 0, "unchanged": 3, "updated": 1}
+CHECK PASS: ingest output: no key, no embeddings/long float lists, single short line
+CHECK PASS: 5. re-ingest after edit: 1 document updated, exactly 1 chunk re-embedded, 3 unchanged, 10 chunks, nothing deleted  [{"chunks": 10, "deleted_chunks": 0, "deleted_documents": 0, "documents": 4, "embedded": 1, "model": "openai/text-embedding-3-small", "new": 0, "unchanged": 3, "updated": 1}]
+  6. rows containing '120 €': 0 | tarifas row id 6 (before 6) contains 150 €: t sha 0ae4f7934b4e | chunks=10 distinct keys=10
+CHECK PASS: 6. no indexed chunk still contains 120 €
+CHECK PASS: 6. tariff chunk now contains 150 € (same row, updated in place)
+CHECK PASS: 6. unchanged chunks not duplicated (same 10 keys, same row ids)
+  6. retrieval after: 03_commercial_policy.md § Tarifas chunk=commercial-policy#tarifas version=aed806921453 score=0.5361 text excerpt='gnóstico inicial: 150 € más IVA. Soporte gestionado: desde 250 €/mes más IVA, sujeto a alcance.'
+CHECK PASS: 6. post-update retrieval returns the 150 € chunk (no 120 €)
+CHECK PASS: 6. reference still the same real file name; version == sha256(edited temporary file)
+  $ python -m app.rag_ingest  (exit 0)
+    rag_ingest {"chunks": 10, "deleted_chunks": 0, "deleted_documents": 0, "documents": 4, "embedded": 1, "model": "openai/text-embedding-3-small", "new": 0, "unchanged": 3, "updated": 1}
+CHECK PASS: ingest output: no key, no embeddings/long float lists, single short line
+CHECK PASS: 7. RESTORE from canonical /srv/knowledge: 1 updated, 1 embedded  [{"chunks": 10, "deleted_chunks": 0, "deleted_documents": 0, "documents": 4, "embedded": 1, "model": "openai/text-embedding-3-small", "new": 0, "unchanged": 3, "updated": 1}]
+  7. after restore: rows with 120 € = 1, rows with 150 € = 0, every document version == committed file: True
+CHECK PASS: 7. index restored to the committed corpus (120 € back, no 150 €, all versions == committed files)
+CHECK PASS: temporary corpus removed (host + container)
+PHASE demo: PASS
+
+===== 16. MODEL CONSISTENCY (REAL index) =====
+  configured model=openai/text-embedding-3-small dimension=1536 min_score=0.39 | indexed: chunk models=1 (openai/text-embedding-3-small), doc models=1, dims=1536 | API model=openai/text-embedding-3-small
+CHECK PASS: configured model == indexed model == API model == openai/text-embedding-3-small
+CHECK PASS: dimension 1536 (code + every stored vector)
+CHECK PASS: single embedding_model in chunks and documents; no mixed rows
+PHASE consistency: PASS
+
+===== 17. ATOMIC FAILURE SMOKE: TEST failure providers, scratch database on the REAL VM PostgreSQL/pgvector =====
+LABEL: TEST-ONLY providers (deterministic hashing; NOT OpenRouter). Scratch DB nexo_rag_smoke; the real index is not touched.
+  setup: scratch index built with TEST provider test-only/hashing-v1: {'documents': 4, 'new': 4, 'updated': 0, 'unchanged': 0, 'deleted_documents': 0, 'chunks': 10, 'embedded': 10, 'deleted_chunks': 0}
+  provider failure: V1 -> V2, call 1 OK, call 2 raised ProviderError (embedding_unavailable)
+CHECK PASS: provider failure before publication: index identical (docs, chunks, hashes, models, vectors, timestamps)
+  DB failure during publication: RaiseException (all 10 embeddings had succeeded)
+CHECK PASS: DB failure during publication: whole corpus rolled back (identical, still V1 only)
+  configured test-only/hashing-v2 vs indexed test-only/hashing-v1: IndexMismatchError (index_model_mismatch); provider calls: 0
+CHECK PASS: model mismatch refused before embedding the query
+  mixed-model index: IndexMismatchError (index_model_mismatch); provider calls: 0
+CHECK PASS: mixed-model index refused
+SMOKE: PASS
+CHECK PASS: scratch database dropped
+CHECK PASS: REAL index untouched by the smoke
+
+===== 18. AUTH / INPUT SAFETY =====
+  CUSTOMER_A: 200 ['support-policy#horario-de-atencion', 'support-policy#limites-del-agente-y-escalado', 'services#catalogo-de-servicios'] | CUSTOMER_B: 200 ['support-policy#horario-de-atencion', 'support-policy#limites-del-agente-y-escalado', 'services#catalogo-de-servicios'] | max score difference 0.0
+CHECK PASS: CUSTOMER_A 200 found
+CHECK PASS: CUSTOMER_B gets the same shared-corpus result (same chunks/references; scores within 0.02: embedding jitter)
+  missing token: HTTP 401 code=None
+CHECK PASS: missing token -> 401
+  invalid token: HTTP 401 code=None
+CHECK PASS: invalid token -> 401
+  injected customer_id field: HTTP 422 code=None
+CHECK PASS: injected customer_id field -> 422
+  malformed X-Conversation-ID: HTTP 400 code=None
+CHECK PASS: malformed X-Conversation-ID -> 400
+  top_k 0: HTTP 422 code=None
+CHECK PASS: top_k 0 -> 422
+  top_k 6: HTTP 422 code=None
+CHECK PASS: top_k 6 -> 422
+  top_k not an integer: HTTP 422 code=None
+CHECK PASS: top_k not an integer -> 422
+  empty query: HTTP 422 code=None
+CHECK PASS: empty query -> 422
+  whitespace-only query: HTTP 422 code=None
+CHECK PASS: whitespace-only query -> 422
+  query 501 chars: HTTP 422 code=None
+CHECK PASS: query 501 chars -> 422
+  missing query: HTTP 422 code=None
+CHECK PASS: missing query -> 422
+CHECK PASS: query of exactly 500 chars accepted (boundary)  [200]
+PHASE auth: PASS
+
+===== 19. TRACEABILITY + SECRET HYGIENE =====
+  rag_search audit events: 23; examples (found, insufficient, rejected):
+   {"ts": "2026-10-07T00:46:23.203+00:00", "request_id": "1e4326f0-6017-46bd-b91a-b4350cd0deb1", "conversation_id": "rag01v1-conv", "method": "POST", "route": "/rag/search", "status": 200, "duration_ms": 464.3, "customer_id": "CUSTOMER_A", "action": "rag_search", "query_length": 44, "query_fp": "556dae00ddcc", "top_k": 3, "model": "openai/text-embedding-3-small", "result": "found", "accepted": 3, "best_score": 0.6988, "chunk_ids": ["support-policy#horario-de-atencion", "support-policy#limites-del-agente-y-escalado", "services#catalogo-de-servicios"], "source_ids": ["services", "support-policy"]}
+   {"ts": "2026-10-07T00:46:27.493+00:00", "request_id": "490050a4-0a42-4e89-b6b1-ca5d46939fab", "conversation_id": "rag01v1-conv", "method": "POST", "route": "/rag/search", "status": 200, "duration_ms": 315.9, "customer_id": "CUSTOMER_A", "action": "rag_search", "query_length": 29, "query_fp": "daeb015a3f30", "top_k": 3, "model": "openai/text-embedding-3-small", "result": "insufficient", "accepted": 0, "best_score": 0.369, "chunk_ids": [], "source_ids": []}
+   {"ts": "2026-10-07T00:46:43.048+00:00", "request_id": "8b3d176f-9d35-4d0f-acb2-c2689eed2252", "conversation_id": null, "method": "POST", "route": "/rag/search", "status": 400, "duration_ms": 10.0, "customer_id": "CUSTOMER_A", "action": "rag_search", "query_length": 44, "query_fp": "556dae00ddcc", "top_k": 3, "result": "rejected", "error": "InvalidConversationHeader"}
+CHECK PASS: found event has request_id, conversation_id, customer, query length/fingerprint, model, accepted, chunk/source ids, best_score, result  [[]]
+CHECK PASS: events carry status + timing
+CHECK PASS: query fingerprint == sha256(query)[:12]
+CHECK PASS: conversation id propagated
+CHECK PASS: backend logs: no OpenRouter key, customer tokens, DB password
+CHECK PASS: backend logs: no Authorization header / Bearer value
+CHECK PASS: backend logs: no raw embeddings (>=10 comma-separated floats)
+CHECK PASS: harness run log: no OpenRouter key, customer tokens, DB password
+CHECK PASS: harness run log: no Authorization header / Bearer value
+CHECK PASS: harness run log: no raw embeddings (>=10 comma-separated floats)
+CHECK PASS: backend logs: no raw query text
+CHECK PASS: backend logs: no chunk content
+PHASE logs: PASS
+POSTGRES_PASSWORD: run log 0, container logs 0
+CHECK PASS: POSTGRES_PASSWORD value not in logs
+AUTH_TOKEN_CUSTOMER_A: run log 0, container logs 0
+CHECK PASS: AUTH_TOKEN_CUSTOMER_A value not in logs
+AUTH_TOKEN_CUSTOMER_B: run log 0, container logs 0
+CHECK PASS: AUTH_TOKEN_CUSTOMER_B value not in logs
+OPENROUTER_API_KEY: run log 0, container logs 0
+CHECK PASS: OPENROUTER_API_KEY value not in logs
+CHECK PASS: OpenRouter traffic only to the configured base URL (code: OPENROUTER_BASE_URL default)
+
+===== 20. RESULT =====
+RAG-01V1 VM VALIDATION: ALL CHECKS PASS
+documents=4 chunks=10
+
+===== 21. CLEANUP =====
+$ docker compose down -v
+ Container nexo-backend-1 Stopping 
+ Container nexo-backend-1 Stopped 
+ Container nexo-backend-1 Removing 
+ Container nexo-backend-1 Removed 
+ Container nexo-db-1 Stopping 
+ Container nexo-db-1 Stopped 
+ Container nexo-db-1 Removing 
+ Container nexo-db-1 Removed 
+ Volume nexo_db_data Removing 
+ Network nexo_internal Removing 
+ Network nexo_automation Removing 
+ Volume nexo_db_data Removed 
+ Network nexo_internal Removed 
+ Network nexo_automation Removed 
+Deleted: sha256:a7cdad9dcfb1a85991b8a267f57d9c040d045e63e5b6ceccb6d69be868f7081f
+Untagged: pgvector/pgvector:0.8.7-pg17-bookworm
+Deleted: sha256:ac08538c6f8b9904c33c8224c5e5706dbe760aca29db1d096972b4052c22a75d
+Total:	249.2MB
+
+===== 22. FINAL STATE =====
+$ docker ps -a
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+$ docker images
+IMAGE   ID             DISK USAGE   CONTENT SIZE   EXTRA
+$ docker volume ls
+DRIVER    VOLUME NAME
+$ docker network ls
+NETWORK ID     NAME      DRIVER    SCOPE
+6381b14192e7   bridge    bridge    local
+5885cec536ca   host      host      local
+447cca8214c8   none      null      local
+$ docker system df
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          0         0         0B        0B
+Containers      0         0         0B        0B
+Local Volumes   0         0         0B        0B
+Build Cache     0         0         0B        0B
+$ ss -tlnH
+LISTEN 0      4096         0.0.0.0:9922 0.0.0.0:*
+LISTEN 0      4096      127.0.0.54:53   0.0.0.0:*
+LISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*
+LISTEN 0      4096            [::]:9922    [::]:*
+nexo containers: 0
+nexo volumes: 0
+no :8000/:5432/:5678 listener
+temporary directory removed (checkout, .env, OpenRouter key file, bundle, driver, state, demo copy)

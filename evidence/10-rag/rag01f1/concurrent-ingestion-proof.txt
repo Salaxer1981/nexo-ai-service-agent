@@ -1,0 +1,32 @@
+# RAG-01F1 concurrent ingestion: LOCAL real PostgreSQL 17.11 + pgvector 0.8.7; embeddings from TEST-ONLY providers
+
+Index currently V1. Scenario: A (model V3) starts; during A's 2nd provider call, B (model V2) runs a COMPLETE ingestion on another
+connection. With the original per-document commits, A had already committed document 1 => mixed index.
+
+B report: {'documents': 4, 'new': 0, 'updated': 4, 'unchanged': 0, 'deleted_documents': 0, 'chunks': 10, 'embedded': 10, 'deleted_chunks': 0}
+models in index right after B committed: ['test-only/hashing-v2']
+A report: {'documents': 4, 'new': 0, 'updated': 4, 'unchanged': 0, 'deleted_documents': 0, 'chunks': 10, 'embedded': 10, 'deleted_chunks': 0}
+
+FINAL:
+  doc   commercial-policy | 03_commercial_policy.md | sha 6b9ffe106bae | test-only/hashing-v3
+  doc   security-policy | 04_security_policy.md | sha 65dc1544a629 | test-only/hashing-v3
+  doc   services | 01_services.md | sha c558f94a2988 | test-only/hashing-v3
+  doc   support-policy | 02_support_policy.md | sha a2955c0c1634 | test-only/hashing-v3
+  chunk commercial-policy#implantaciones-de-ia-y-descuentos | sha e0e0042be2d5 | test-only/hashing-v3 | vector md5 9549c5ef22ac
+  chunk commercial-policy#tarifas | sha 46645bf32612 | test-only/hashing-v3 | vector md5 1bf9dc1e963a
+  chunk security-policy#acciones-y-borrados | sha 72870b383438 | test-only/hashing-v3 | vector md5 490668e2086b
+  chunk security-policy#datos-sensibles-y-privacidad | sha 5840d014b8c3 | test-only/hashing-v3 | vector md5 ec9ba4b4c58e
+  chunk security-policy#documentos-recuperados-y-secretos | sha 494712c61b15 | test-only/hashing-v3 | vector md5 ba1dee869e7e
+  chunk services#catalogo-de-servicios | sha 77fe54562998 | test-only/hashing-v3 | vector md5 83275ae6424f
+  chunk services#nuevas-implantaciones-y-plazos | sha da0a197383a0 | test-only/hashing-v3 | vector md5 298bb0ced747
+  chunk support-policy#clasificacion-de-incidencias | sha 72b693d37b34 | test-only/hashing-v3 | vector md5 e18d5e581e7a
+  chunk support-policy#horario-de-atencion | sha 304d5875e6b5 | test-only/hashing-v3 | vector md5 6bdae929b028
+  chunk support-policy#limites-del-agente-y-escalado | sha 4d824b5f9f29 | test-only/hashing-v3 | vector md5 74b4c092201e
+
+distinct chunk models: ['test-only/hashing-v3']; distinct document models: ['test-only/hashing-v3']
+chunks: 10 (desired 10) -> one complete generation, no mix: True
+
+Serialization: another session holds the ingestion advisory lock; a V2 ingestion is started.
+  observed in pg_locks: ingestion WAITING on the advisory lock (not granted)
+  index unchanged while it waited: True
+  after release it published: {'documents': 4, 'new': 0, 'updated': 4, 'unchanged': 0, 'deleted_documents': 0, 'chunks': 10, 'embedded': 10, 'deleted_chunks': 0}; models now ['test-only/hashing-v2']

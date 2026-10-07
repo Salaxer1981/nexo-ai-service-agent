@@ -1,0 +1,12 @@
+# RAG-01F1 mutation checks on the fix (each mutation applied alone to rag.py, suite = test_rag_atomic + test_rag, file restored) (local: Windows 11, Python 3.12.10, PostgreSQL 17.11 + pgvector 0.8.7; TEST-ONLY embedding providers)
+
+F1 advisory lock removed: 1 failed, 34 passed, 1 warning in 43.77s
+   caught by: ['test_second_ingestion_waits_for_the_lock']
+F2 re-plan check removed (publish without the needed embedding): 1 failed, 34 passed, 1 warning in 23.53s
+   caught by: ['test_concurrent_change_forces_replan_not_partial_publication']
+F3 reference==filename check removed + front matter trusted: 1 failed, 34 passed, 1 warning in 22.98s
+   caught by: ['test_reference_mismatch_fails_closed_before_any_mutation']
+F4 single publication transaction removed (statements autocommit): 1 failed, 34 passed, 1 warning in 23.35s
+   caught by: ['test_database_failure_during_publication_rolls_back_everything']
+F5 stale deletion done before embedding (delete removed docs first): 2 failed, 33 passed, 1 warning in 23.56s
+   caught by: ['test_provider_failure_does_not_delete_stale_content', 'test_removed_section_and_deleted_document_are_cleaned_up']

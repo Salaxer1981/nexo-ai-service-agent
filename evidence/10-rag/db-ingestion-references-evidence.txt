@@ -1,0 +1,30 @@
+# RAG-01 database / pgvector / ingestion evidence: LOCAL real PostgreSQL 17.11 + pgvector 0.8.7
+# Embeddings: TEST-ONLY HashingEmbeddingProvider (mechanics only; real model: live-embedding-smoke.json).
+
+pg_extension vector: 0.8.7
+knowledge_chunks.embedding type: vector(1536)
+
+## Ingestion sequence (report = counts only, as printed by `python -m app.rag_ingest`)
+1. first ingest:            {'documents': 4, 'new': 4, 'updated': 0, 'unchanged': 0, 'deleted_documents': 0, 'chunks': 10, 'embedded': 10, 'deleted_chunks': 0}
+2. re-ingest unchanged:     {'documents': 4, 'new': 0, 'updated': 0, 'unchanged': 4, 'deleted_documents': 0, 'chunks': 10, 'embedded': 0, 'deleted_chunks': 0}
+3. 120 € -> 150 € edited:   {'documents': 4, 'new': 0, 'updated': 1, 'unchanged': 3, 'deleted_documents': 0, 'chunks': 10, 'embedded': 1, 'deleted_chunks': 0}
+   commercial-policy#tarifas: same row id True, contains '150 €' True, contains '120 €' False, new sha 0ae4f7934b4e
+   rows still containing '120 €': 0
+4. 01_services.md deleted:  {'documents': 3, 'new': 0, 'updated': 0, 'unchanged': 3, 'deleted_documents': 1, 'chunks': 8, 'embedded': 0, 'deleted_chunks': 2}
+5. 01_services.md restored: {'documents': 4, 'new': 1, 'updated': 0, 'unchanged': 3, 'deleted_documents': 0, 'chunks': 10, 'embedded': 2, 'deleted_chunks': 0}
+
+## Indexed rows (no vectors printed)
+chunk_key | ordinal | model | dims | document | doc sha256 (12) | chunk sha256 (12)
+commercial-policy#tarifas | 0 | test-only/hashing-v1 | 1536 | 03_commercial_policy.md | aed806921453 | 0ae4f7934b4e
+commercial-policy#implantaciones-de-ia-y-descuentos | 1 | test-only/hashing-v1 | 1536 | 03_commercial_policy.md | aed806921453 | e0e0042be2d5
+security-policy#datos-sensibles-y-privacidad | 0 | test-only/hashing-v1 | 1536 | 04_security_policy.md | 65dc1544a629 | 5840d014b8c3
+security-policy#documentos-recuperados-y-secretos | 1 | test-only/hashing-v1 | 1536 | 04_security_policy.md | 65dc1544a629 | 494712c61b15
+security-policy#acciones-y-borrados | 2 | test-only/hashing-v1 | 1536 | 04_security_policy.md | 65dc1544a629 | 72870b383438
+services#catalogo-de-servicios | 0 | test-only/hashing-v1 | 1536 | 01_services.md | c558f94a2988 | 77fe54562998
+services#nuevas-implantaciones-y-plazos | 1 | test-only/hashing-v1 | 1536 | 01_services.md | c558f94a2988 | da0a197383a0
+support-policy#horario-de-atencion | 0 | test-only/hashing-v1 | 1536 | 02_support_policy.md | a2955c0c1634 | 304d5875e6b5
+support-policy#clasificacion-de-incidencias | 1 | test-only/hashing-v1 | 1536 | 02_support_policy.md | a2955c0c1634 | 72b693d37b34
+support-policy#limites-del-agente-y-escalado | 2 | test-only/hashing-v1 | 1536 | 02_support_policy.md | a2955c0c1634 | 4d824b5f9f29
+
+## Reference resolution for one search (query: 'precio diagnóstico inicial')
+- 03_commercial_policy.md § Tarifas (chunk commercial-policy#tarifas, score 0.2408) -> file 03_commercial_policy.md sha aed806921453 == indexed aed806921453: True

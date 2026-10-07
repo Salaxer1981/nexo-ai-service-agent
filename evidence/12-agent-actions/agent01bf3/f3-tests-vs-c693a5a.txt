@@ -1,0 +1,60 @@
+# AGENT-01BF3 BF3 tests against the c693a5a chat_actions.py (temporarily restored; fix restored byte-exact) (local: REAL PostgreSQL 17.11 + pgvector 0.8.7; TEST-ONLY scripted model; FakeN8n = TEST stand-in, NOT n8n)
+
+Semantic failures: confirm-wins (ticket, lead) -> 'awaiting_confirmation' (B published after A consumed/confirmed);
+X/Z -> cancel called on Z. The two proposal-wins tests failed here only with a TypeError (the hook passed the new
+lock= argument); after making the hook version-compatible they were re-run: f3-proposal-wins-vs-c693a5a.txt.
+Deadlock and revision tests pass on both versions (preservation / signal tests).
+
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Scripts\python.exe
+rootdir: C:\Users\User\Desktop\nexo-ai-service-agent
+configfile: pytest.ini
+plugins: anyio-4.15.1
+collecting ... collected 7 items
+
+tests/test_chat_actions_f3.py::test_ticket_proposal_wins_and_api_confirm_waits_then_fails_safely FAILED [ 14%]
+tests/test_chat_actions_f3.py::test_lead_proposal_wins_and_api_confirm_waits_then_fails_safely FAILED [ 28%]
+tests/test_chat_actions_f3.py::test_ticket_confirm_wins_and_stale_proposal_is_rejected FAILED [ 42%]
+tests/test_chat_actions_f3.py::test_lead_confirm_wins_keeps_the_in_flight_pointer_and_recovers_through_n8n FAILED [ 57%]
+tests/test_chat_actions_f3.py::test_concurrent_chat_reprepare_and_api_prepare_never_deadlock PASSED [ 71%]
+tests/test_chat_actions_f3.py::test_cancel_with_corrupt_pointer_and_another_valid_pending_action_mutates_nothing FAILED [ 85%]
+tests/test_chat_actions_f3.py::test_cancel_advances_revision_before_mutation_even_if_chat_sync_fails PASSED [100%]
+
+================================== FAILURES ===================================
+E   TypeError: reconcile() got an unexpected keyword argument 'lock'
+C:\Users\User\Desktop\nexo-ai-service-agent\tests\test_chat_actions_f3.py:53: TypeError: reconcile() got an unexpected keyword argument 'lock'
+E   TypeError: reconcile() got an unexpected keyword argument 'lock'
+C:\Users\User\Desktop\nexo-ai-service-agent\tests\test_chat_actions_f3.py:53: TypeError: reconcile() got an unexpected keyword argument 'lock'
+E   AssertionError: assert ('awaiting_confirmation' == 'already_completed'
+      
+      - already_completed
+      + awaiting_confirmation)
+C:\Users\User\Desktop\nexo-ai-service-agent\tests\test_chat_actions_f3.py:122: AssertionError: assert ('awaiting_confirmation' == 'already_completed'
+E   AssertionError: assert 'awaiting_confirmation' == 'action_in_progress'
+      
+      - action_in_progress
+      + awaiting_confirmation
+C:\Users\User\Desktop\nexo-ai-service-agent\tests\test_chat_actions_f3.py:133: AssertionError: assert 'awaiting_confirmation' == 'action_in_progress'
+E   AssertionError: assert [UUID('a8f99e...b48d189424f')] == []
+      
+      Left contains one more item: UUID('a8f99e4b-d10d-41dd-8053-4b48d189424f')
+      
+      Full diff:
+      - []
+      + [
+      +     UUID('a8f99e4b-d10d-41dd-8053-4b48d189424f'),
+      + ]
+C:\Users\User\Desktop\nexo-ai-service-agent\tests\test_chat_actions_f3.py:185: AssertionError: assert [UUID('a8f99e...b48d189424f')] == []
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_chat_actions_f3.py::test_ticket_proposal_wins_and_api_confirm_waits_then_fails_safely
+FAILED tests/test_chat_actions_f3.py::test_lead_proposal_wins_and_api_confirm_waits_then_fails_safely
+FAILED tests/test_chat_actions_f3.py::test_ticket_confirm_wins_and_stale_proposal_is_rejected
+FAILED tests/test_chat_actions_f3.py::test_lead_confirm_wins_keeps_the_in_flight_pointer_and_recovers_through_n8n
+FAILED tests/test_chat_actions_f3.py::test_cancel_with_corrupt_pointer_and_another_valid_pending_action_mutates_nothing
+=================== 5 failed, 2 passed, 1 warning in 13.81s ===================

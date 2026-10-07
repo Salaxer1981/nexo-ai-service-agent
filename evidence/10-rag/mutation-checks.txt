@@ -1,0 +1,22 @@
+# RAG-01 mutation checks (tests/test_rag.py; each mutation alone; rag.py restored byte-exact)
+
+## R1 threshold ignored (nearest neighbours always 'evidence'): 2 failed, 25 passed, 1 warning in 19.00s
+   FAILED test_search_ranks_and_references_the_right_section
+   FAILED test_unrelated_query_reports_insufficient_evidence
+## R2 stale chunks not deleted on document change: 1 failed, 26 passed, 1 warning in 18.42s
+   FAILED test_removed_section_and_deleted_document_are_cleaned_up
+## R3 unchanged chunks re-embedded (not idempotent): 3 failed, 24 passed, 1 warning in 18.59s
+   FAILED test_changed_document_replaces_only_the_changed_chunk
+   FAILED test_reingest_unchanged_is_idempotent
+   FAILED test_removed_section_and_deleted_document_are_cleaned_up
+## R4 model consistency check skipped: 1 failed, 26 passed, 1 warning in 18.27s
+   FAILED test_failures_return_safe_503
+## R5 reference omits the section (not traceable to document AND section): 2 failed, 25 passed, 1 warning in 18.22s
+   FAILED test_every_reference_resolves_to_an_indexed_source_version
+   FAILED test_search_ranks_and_references_the_right_section
+## R6 deleted documents kept in the index: 2 failed, 25 passed, 1 warning in 18.26s
+   FAILED test_first_ingest_persists_vectors_and_metadata
+   FAILED test_removed_section_and_deleted_document_are_cleaned_up
+## R7 mixed vector spaces allowed in the index: 1 failed, 26 passed, 1 warning in 18.54s
+   FAILED test_failures_return_safe_503
+restored: True

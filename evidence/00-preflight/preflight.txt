@@ -1,0 +1,158 @@
+# PRE-01 VM preflight — sanitized evidence
+# Source: ssh -p 9922 user@<VM> 'bash -s' < preflight.sh (run interactively by project owner; password entered at prompt, not captured)
+# Captured: 2026-10-06 11:08 UTC. Sanitization: secret-pattern scan found no credentials; content unchanged.
+
+===== A. ACCESS =====
+$ whoami
+user
+$ id
+uid=1000(user) gid=1000(user) groups=1000(user),4(adm),24(cdrom),27(sudo),30(dip),46(plugdev),101(lxd)
+$ hostname
+server
+$ date -u
+mar 06 oct 2026 11:08:37 UTC
+
+===== B. OPERATING SYSTEM =====
+$ cat /etc/os-release
+PRETTY_NAME="Ubuntu 24.04.4 LTS"
+NAME="Ubuntu"
+VERSION_ID="24.04"
+VERSION="24.04.4 LTS (Noble Numbat)"
+VERSION_CODENAME=noble
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+UBUNTU_CODENAME=noble
+LOGO=ubuntu-logo
+$ uname -r
+6.8.0-100-generic
+$ uname -m
+x86_64
+
+===== C. CAPACITY =====
+$ nproc
+2
+$ lscpu
+Architecture:                            x86_64
+CPU op-mode(s):                          32-bit, 64-bit
+Address sizes:                           40 bits physical, 48 bits virtual
+Byte Order:                              Little Endian
+CPU(s):                                  2
+On-line CPU(s) list:                     0,1
+Vendor ID:                               AuthenticAMD
+Model name:                              QEMU Virtual CPU version 2.5+
+CPU family:                              15
+Model:                                   107
+Thread(s) per core:                      1
+Core(s) per socket:                      2
+Socket(s):                               1
+Stepping:                                1
+BogoMIPS:                                7199,99
+Flags:                                   fpu de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx lm rep_good nopl cpuid extd_apicid tsc_known_freq pni ssse3 cx16 sse4_1 sse4_2 x2apic popcnt aes hypervisor lahf_lm cmp_legacy 3dnowprefetch vmmcall
+Hypervisor vendor:                       KVM
+Virtualization type:                     full
+L1d cache:                               128 KiB (2 instances)
+L1i cache:                               128 KiB (2 instances)
+L2 cache:                                1 MiB (2 instances)
+L3 cache:                                32 MiB (2 instances)
+NUMA node(s):                            1
+NUMA node0 CPU(s):                       0,1
+Vulnerability Gather data sampling:      Not affected
+Vulnerability Indirect target selection: Not affected
+Vulnerability Itlb multihit:             Not affected
+Vulnerability L1tf:                      Not affected
+Vulnerability Mds:                       Not affected
+Vulnerability Meltdown:                  Not affected
+Vulnerability Mmio stale data:           Not affected
+Vulnerability Reg file data sampling:    Not affected
+Vulnerability Retbleed:                  Not affected
+Vulnerability Spec rstack overflow:      Not affected
+Vulnerability Spec store bypass:         Not affected
+Vulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization
+Vulnerability Spectre v2:                Mitigation; Retpolines; STIBP disabled; RSB filling; PBRSB-eIBRS Not affected; BHI Not affected
+Vulnerability Srbds:                     Not affected
+Vulnerability Tsa:                       Not affected
+Vulnerability Tsx async abort:           Not affected
+Vulnerability Vmscape:                   Not affected
+$ free -h
+               total        used        free      shared  buff/cache   available
+Mem:           3,8Gi       433Mi       3,0Gi       1,0Mi       681Mi       3,4Gi
+Swap:          3,8Gi          0B       3,8Gi
+$ df -hT -x tmpfs -x devtmpfs -x squashfs -x overlay
+Filesystem                        Type  Size  Used Avail Use% Mounted on
+/dev/mapper/ubuntu--vg-ubuntu--lv ext4   47G  6,4G   39G  15% /
+/dev/sda2                         ext4  2,0G  102M  1,7G   6% /boot
+$ df -h /var/lib/docker /home /tmp
+df: /var/lib/docker: No such file or directory
+Filesystem                         Size  Used Avail Use% Mounted on
+/dev/mapper/ubuntu--vg-ubuntu--lv   47G  6,4G   39G  15% /
+/dev/mapper/ubuntu--vg-ubuntu--lv   47G  6,4G   39G  15% /
+(exit 1)
+
+===== D. CONTAINERS =====
+$ command -v docker
+(exit 1)
+$ docker --version
+main: line 6: docker: command not found
+(exit 127)
+$ docker compose version
+main: line 6: docker: command not found
+(exit 127)
+$ docker-compose --version
+main: line 6: docker-compose: command not found
+(exit 127)
+$ systemctl is-active docker
+inactive
+(exit 4)
+$ docker info --format ServerVersion={{.ServerVersion}} Driver={{.Driver}} RootDir={{.DockerRootDir}} Containers={{.Containers}} Running={{.ContainersRunning}}
+main: line 6: docker: command not found
+(exit 127)
+$ docker ps --format table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}
+main: line 6: docker: command not found
+(exit 127)
+$ docker network ls
+main: line 6: docker: command not found
+(exit 127)
+$ docker volume ls
+main: line 6: docker: command not found
+(exit 127)
+$ docker system df
+main: line 6: docker: command not found
+(exit 127)
+
+===== E. NETWORK =====
+$ ss -tlnH
+LISTEN 0      4096         0.0.0.0:9922 0.0.0.0:*
+LISTEN 0      4096      127.0.0.54:53   0.0.0.0:*
+LISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*
+LISTEN 0      4096            [::]:9922    [::]:*
+$ ss -ulnH
+UNCONN 0      0               127.0.0.54:53 0.0.0.0:*
+UNCONN 0      0            127.0.0.53%lo:53 0.0.0.0:*
+UNCONN 0      0      <VM_HOST>%ens18:68 0.0.0.0:*
+$ curl -sS -o /dev/null -w ... https://openrouter.ai/api/v1/models
+http_code=200 time=0.044535s
+$ curl -sS -o /dev/null -w ... https://pypi.org/simple/
+http_code=200 time=0.466167s
+
+===== F. RUNTIME =====
+$ git --version
+git version 2.43.0
+$ python3 --version
+Python 3.12.3
+$ python3 -c import venv, ensurepip; print("venv+ensurepip OK")
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+ModuleNotFoundError: No module named 'ensurepip'
+(exit 1)
+$ pip3 --version
+main: line 6: pip3: command not found
+(exit 127)
+$ curl --version
+curl 8.5.0 (x86_64-pc-linux-gnu) libcurl/8.5.0 OpenSSL/3.0.13 zlib/1.3 brotli/1.1.0 zstd/1.5.5 libidn2/2.3.7 libpsl/0.21.2 (+libidn2/2.3.7) libssh/0.10.6/openssl/zlib nghttp2/1.59.0 librtmp/2.3 OpenLDAP/2.6.10
+Release-Date: 2023-12-06, security patched: 8.5.0-2ubuntu10.6
+Protocols: dict file ftp ftps gopher gophers http https imap imaps ldap ldaps mqtt pop3 pop3s rtmp rtsp scp sftp smb smbs smtp smtps telnet tftp
+Features: alt-svc AsynchDNS brotli GSS-API HSTS HTTP2 HTTPS-proxy IDN IPv6 Kerberos Largefile libz NTLM PSL SPNEGO SSL threadsafe TLS-SRP UnixSockets zstd

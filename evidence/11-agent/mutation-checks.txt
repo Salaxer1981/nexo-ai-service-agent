@@ -1,0 +1,24 @@
+# AGENT-01A mutation checks: each safety control broken alone in app code, tests/test_agent.py run, file restored (local: Windows 11, Python 3.12.10, PostgreSQL 17.11 + pgvector 0.8.7; TEST-ONLY chat client + embedder)
+
+G1 read-only DB session removed: 1 failed, 60 passed, 1 warning in 27.72s
+   caught by: ['test_agent_database_session_is_read_only']
+G2 grounding guard disabled: 12 failed, 49 passed, 1 warning in 26.65s
+   caught by: ['test_figures_must_come_from_the_cited_chunks_not_from_other_retrieved_ones', 'test_injection_inside_a_retrieved_document_is_data_only', 'test_ungrounded_answers_are_blocked']
+G3 citation must be a retrieved chunk: check removed: 2 failed, 59 passed, 1 warning in 26.54s
+   caught by: ['test_ungrounded_answers_are_blocked']
+G4 figure guard uses substring instead of token match: 1 failed, 60 passed, 1 warning in 27.02s
+   caught by: ['test_figure_guard_is_token_based']
+G5 LLM asked to answer even with insufficient evidence (early return removed): 1 failed, 60 passed, 1 warning in 27.25s
+   caught by: ['test_no_evidence_answers_insufficient_without_asking_the_model']
+G6 ticket ownership ignored (lookup as owner): 3 failed, 58 passed, 1 warning in 27.16s
+   caught by: ['test_customer_id_written_in_chat_is_not_authentication', 'test_foreign_and_missing_tickets_get_the_same_safe_answer', 'test_pdf_injection_in_user_message_cannot_trigger_actions_or_cross_customer_reads']
+G7 extra fields allowed in intent output: 4 failed, 57 passed, 1 warning in 26.46s
+   caught by: ['test_invalid_intent_output_fails_safely', 'test_ticket_id_must_be_typed_by_the_customer']
+G8 served-model check removed (silent fallback): 1 failed, 60 passed, 1 warning in 27.22s
+   caught by: ['test_openrouter_client_failures']
+G9 provider fallbacks allowed: 1 failed, 60 passed, 1 warning in 26.11s
+   caught by: ['test_openrouter_client_request_and_success']
+G10 truncated output accepted: 1 failed, 60 passed, 1 warning in 26.84s
+   caught by: ['test_openrouter_client_failures']
+G11 ticket id taken from anywhere (model may add ids): ambiguity check removed: 1 failed, 60 passed, 1 warning in 27.68s
+   caught by: ['test_ticket_id_must_be_typed_by_the_customer']

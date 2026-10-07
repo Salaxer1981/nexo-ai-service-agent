@@ -1,0 +1,31 @@
+# APP-03AF1 test runs (2026-10-06; real throwaway PostgreSQL 17.11; sanitized, no credentials)
+
+## Reproduction: new tests against the UNFIXED code of 2fd4e2a
+tests/test_handoff_conversation_header.py::test_absent_or_matching_header_is_accepted[absent] PASSED
+tests/test_handoff_conversation_header.py::test_absent_or_matching_header_is_accepted[valid-equal] PASSED
+tests/test_handoff_conversation_header.py::test_absent_or_matching_header_is_accepted[valid-equal-padded] PASSED
+tests/test_handoff_conversation_header.py::test_mismatched_or_invalid_header_is_rejected_and_persists_nothing[different] PASSED
+tests/test_handoff_conversation_header.py::test_mismatched_or_invalid_header_is_rejected_and_persists_nothing[empty] FAILED
+tests/test_handoff_conversation_header.py::test_mismatched_or_invalid_header_is_rejected_and_persists_nothing[whitespace] FAILED
+tests/test_handoff_conversation_header.py::test_mismatched_or_invalid_header_is_rejected_and_persists_nothing[inner-space] FAILED
+tests/test_handoff_conversation_header.py::test_mismatched_or_invalid_header_is_rejected_and_persists_nothing[slash] FAILED
+tests/test_handoff_conversation_header.py::test_mismatched_or_invalid_header_is_rejected_and_persists_nothing[too-long] FAILED
+tests/test_handoff_conversation_header.py::test_invalid_header_rejected_before_idempotency_key_is_consumed FAILED
+tests/test_handoff_conversation_header.py::test_unauthenticated_request_with_invalid_header_is_still_401 PASSED
+tests/test_handoff_conversation_header.py::test_ownership_unchanged_with_valid_header PASSED
+FAILED tests/test_handoff_conversation_header.py::test_mismatched_or_invalid_header_is_rejected_and_persists_nothing[empty]
+FAILED tests/test_handoff_conversation_header.py::test_mismatched_or_invalid_header_is_rejected_and_persists_nothing[whitespace]
+FAILED tests/test_handoff_conversation_header.py::test_mismatched_or_invalid_header_is_rejected_and_persists_nothing[inner-space]
+FAILED tests/test_handoff_conversation_header.py::test_mismatched_or_invalid_header_is_rejected_and_persists_nothing[slash]
+FAILED tests/test_handoff_conversation_header.py::test_mismatched_or_invalid_header_is_rejected_and_persists_nothing[too-long]
+FAILED tests/test_handoff_conversation_header.py::test_invalid_header_rejected_before_idempotency_key_is_consumed
+=================== 6 failed, 6 passed, 1 warning in 9.57s ====================
+
+## With the fix
+1_focused_app03af1: ======================== 12 passed, 1 warning in 9.31s ========================
+2_handoff_suite: ======================= 44 passed, 1 warning in 18.83s ========================
+3_app01_auth_isolation: ======================= 24 passed, 1 warning in 17.12s ========================
+4_app02_tickets_idempotency_concurrency: ======================= 55 passed, 1 warning in 39.65s ========================
+5_migrations: ======================= 11 passed, 1 warning in 12.63s ========================
+6_full_run1: ============ 159 passed, 2 skipped, 1 warning in 65.14s (0:01:05) =============
+6_full_run2: ============ 159 passed, 2 skipped, 1 warning in 64.73s (0:01:04) =============

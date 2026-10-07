@@ -1,0 +1,1 @@
+{"restored_from": "nexo-db-20261007T171527.dump", "pg_restore_rc": 0, "stderr_lines": 0, "counts_after_restore": ["3", "1", "2", "2"], "handoffs_after_restore": [["critical_incident", "pending"], ["human_requested", "pending"]]}

@@ -1,0 +1,22 @@
+# AGENT-01BF2 mutation checks G1-G5: foreground, sequential, byte-exact backup/restore, memory logged (local: REAL PostgreSQL 17.11 + pgvector 0.8.7; TEST-ONLY scripted model; FakeN8n = TEST stand-in, NOT n8n)
+
+Suites per mutation: test_chat_actions_f2 + test_chat_actions_f1 + test_chat_actions + test_agent (144 tests).
+
+G1 remove the authoritative-status check before proposal publication: 5 failed, 139 passed, 1 warning in 95.12s (0:01:35)
+   caught by: ['test_in_flight_lead_pointer_is_never_replaced_even_with_a_current_basis', 'test_t1_ticket_commit_then_lost_response_vs_stale_model_proposal', 'test_t2_lead_confirmed_and_n8n_failure_vs_stale_model_proposal', 'test_t3_plain_api_lead_completion_vs_stale_model_proposal', 'test_t3_plain_api_ticket_completion_vs_stale_model_proposal']
+   restored byte-exact: True | pytest rc 1 | 96s | memory before: load 82% avail 1.0/5.8 GiB | after: load 80% avail 1.1/5.8 GiB
+G2 treat a consumed action as if still pending: 3 failed, 141 passed, 1 warning in 98.60s (0:01:38)
+   caught by: ['test_t1_ticket_commit_then_lost_response_vs_stale_model_proposal', 'test_t3_plain_api_lead_completion_vs_stale_model_proposal', 'test_t3_plain_api_ticket_completion_vs_stale_model_proposal']
+   restored byte-exact: True | pytest rc 1 | 100s | memory before: load 80% avail 1.1/5.8 GiB | after: load 81% avail 1.1/5.8 GiB
+G3 allow a confirmed (in-flight) lead to be replaced: 2 failed, 142 passed, 1 warning in 98.32s (0:01:38)
+   caught by: ['test_in_flight_lead_pointer_is_never_replaced_even_with_a_current_basis', 'test_t2_lead_confirmed_and_n8n_failure_vs_stale_model_proposal']
+   restored byte-exact: True | pytest rc 1 | 100s | memory before: load 81% avail 1.1/5.8 GiB | after: load 81% avail 1.1/5.8 GiB
+G4 check conversation membership only after the cancel mutation: 2 failed, 142 passed, 1 warning in 97.62s (0:01:37)
+   caught by: ['test_t4_cancel_with_cross_conversation_ticket_pointer_mutates_nothing', 'test_t5_cancel_with_cross_conversation_lead_pointer_mutates_nothing']
+   restored byte-exact: True | pytest rc 1 | 99s | memory before: load 82% avail 1.0/5.8 GiB | after: load 82% avail 1.1/5.8 GiB
+G5 reconcile, but let the stale proposal continue (overwrites the recovery pointer): 5 failed, 139 passed, 1 warning in 98.51s (0:01:38)
+   caught by: ['test_in_flight_lead_pointer_is_never_replaced_even_with_a_current_basis', 'test_t1_ticket_commit_then_lost_response_vs_stale_model_proposal', 'test_t2_lead_confirmed_and_n8n_failure_vs_stale_model_proposal', 'test_t3_plain_api_lead_completion_vs_stale_model_proposal', 'test_t3_plain_api_ticket_completion_vs_stale_model_proposal']
+   restored byte-exact: True | pytest rc 1 | 100s | memory before: load 82% avail 1.1/5.8 GiB | after: load 80% avail 1.1/5.8 GiB
+
+RESULT: G1-G5 all caught. After each batch: all sites original, no mutant residue (incl. BF1 patterns; stale
+__pycache__ removed), 0 PostgreSQL processes, 0 temp clusters.

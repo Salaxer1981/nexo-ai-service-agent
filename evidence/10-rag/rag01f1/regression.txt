@@ -1,0 +1,27 @@
+# RAG-01F1 regression groups (2026-10-07); the groups partition the full suite (8+27+27+24+53+44+41+32 = 256)
+
+RAG-01F1 new: tests/test_rag_atomic.py
+    ======================== 8 passed, 1 warning in 12.46s ========================
+RAG-01 existing: test_rag.py (+ live smoke, opt-in skipped)
+    ================== 27 passed, 1 skipped, 1 warning in 18.42s ==================
+migrations/startup/readiness: test_migrations, test_startup_commands, test_readiness, test_priority_migration
+    ======================= 27 passed, 1 warning in 28.71s ========================
+APP-01: test_business_api, test_health, test_config
+    ======================= 24 passed, 1 warning in 11.64s ========================
+APP-02: test_ticket_create, test_prepare_concurrency, test_traceability
+    ======================= 53 passed, 1 warning in 39.57s ========================
+APP-03A: test_handoffs, test_handoff_conversation_header
+    ======================= 44 passed, 1 warning in 22.93s ========================
+APP-03B: test_leads
+    ======================= 41 passed, 1 warning in 27.79s ========================
+static/compose: test_compose, test_lead_workflow_static
+    ======================== 32 passed, 1 warning in 0.13s ========================
+FULL run 1
+    ============ 256 passed, 5 skipped, 1 warning in 102.44s (0:01:42) ============
+FULL run 2
+    ============ 256 passed, 5 skipped, 1 warning in 103.72s (0:01:43) ============
+
+Skipped = opt-in only: evidence dumps (NEXO_EVIDENCE_DIR) and the live OpenRouter smoke (NEXO_LIVE_OPENROUTER=1).
+No live OpenRouter call was made in RAG-01F1.
+FULL run 3 (final, after adding the opt-in RAG-01F1 proof dump)
+    256 passed, 6 skipped, 1 warning in 103.38s (0:01:43)

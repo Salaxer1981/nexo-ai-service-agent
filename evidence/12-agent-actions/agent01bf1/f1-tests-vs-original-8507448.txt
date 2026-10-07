@@ -1,0 +1,83 @@
+# AGENT-01BF1 new tests run against the ORIGINAL 8507448 code (temporarily restored; fix restored byte-exact afterwards) (local: REAL PostgreSQL 17.11 + pgvector 0.8.7; TEST-ONLY scripted model; FakeN8n = TEST stand-in, NOT n8n)
+
+Expected: every protection test fails; test_reprepare_then_cancel_cancels_the_current_version is a behaviour-preservation
+test and passes on both. Token tests also fail because the original API rejects the unknown field (422); the semantic
+harm is shown separately in old-semantic-proof.txt.
+
+FFFFFFFFFFFFF.F                                                          [100%]
+================================== FAILURES ===================================
+E   KeyError: 'confirmation_token'
+C:\Users\User\Desktop\nexo-ai-service-agent\tests\test_chat_actions_f1.py:59: KeyError: 'confirmation_token'
+E   KeyError: 'confirmation_token'
+C:\Users\User\Desktop\nexo-ai-service-agent\tests\test_chat_actions_f1.py:59: KeyError: 'confirmation_token'
+E   KeyError: 'confirmation_token'
+C:\Users\User\Desktop\nexo-ai-service-agent\tests\test_chat_actions_f1.py:92: KeyError: 'confirmation_token'
+E   KeyError: 'confirmation_token'
+C:\Users\User\Desktop\nexo-ai-service-agent\tests\test_chat_actions_f1.py:92: KeyError: 'confirmation_token'
+E   KeyError: 'confirmation_token'
+C:\Users\User\Desktop\nexo-ai-service-agent\tests\test_chat_actions_f1.py:109: KeyError: 'confirmation_token'
+E   AttributeError: module 'app.chat_actions' has no attribute 'confirmation_token'. Did you mean: 'confirmation_key'?
+C:\Users\User\Desktop\nexo-ai-service-agent\tests\test_chat_actions_f1.py:133: AttributeError: module 'app.chat_actions' has no attribute 'confirmation_token'. Did you mean: 'confirmation_key'?
+E   AssertionError: assert ('cancelled' == 'already_completed'
+      
+      - already_completed
+      + cancelled)
+C:\Users\User\Desktop\nexo-ai-service-agent\tests\test_chat_actions_f1.py:160: AssertionError: assert ('cancelled' == 'already_completed'
+E   AssertionError: assert ('cancelled' == 'already_completed'
+      
+      - already_completed
+      + cancelled)
+C:\Users\User\Desktop\nexo-ai-service-agent\tests\test_chat_actions_f1.py:192: AssertionError: assert ('cancelled' == 'already_completed'
+E   AssertionError: assert ('cancelled' == 'not_pending'
+      
+      - not_pending
+      + cancelled)
+C:\Users\User\Desktop\nexo-ai-service-agent\tests\test_chat_actions_f1.py:209: AssertionError: assert ('cancelled' == 'not_pending'
+E   AssertionError: assert ('cancelled' == 'not_pending'
+      
+      - not_pending
+      + cancelled)
+C:\Users\User\Desktop\nexo-ai-service-agent\tests\test_chat_actions_f1.py:209: AssertionError: assert ('cancelled' == 'not_pending'
+E   AssertionError: assert ('ticket_created' == 'ticket_created'
+      
+        ticket_created and 'nothing_pending' == 'already_completed'
+      
+      - already_completed
+      + nothing_pending)
+C:\Users\User\Desktop\nexo-ai-service-agent\tests\test_chat_actions_f1.py:237: AssertionError: assert ('ticket_created' == 'ticket_created'
+E   AssertionError: assert ('collecting_info' == 'conversation_changed'
+      
+      - conversation_changed
+      + collecting_info)
+C:\Users\User\Desktop\nexo-ai-service-agent\tests\test_chat_actions_f1.py:257: AssertionError: assert ('collecting_info' == 'conversation_changed'
+E   AssertionError: assert 'collecting_info' == 'conversation_changed'
+      
+      - conversation_changed
+      + collecting_info
+C:\Users\User\Desktop\nexo-ai-service-agent\tests\test_chat_actions_f1.py:275: AssertionError: assert 'collecting_info' == 'conversation_changed'
+E   psycopg.errors.UndefinedColumn: column "revision" does not exist
+    LINE 1: SELECT revision FROM chat_conversations WHERE conversation_i...
+                   ^
+C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Lib\site-packages\psycopg\connection.py:304: psycopg.errors.UndefinedColumn: column "revision" does not exist
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_chat_actions_f1.py::test_reprepare_during_confirm_never_executes_the_newer_version[ticket]
+FAILED tests/test_chat_actions_f1.py::test_reprepare_during_confirm_never_executes_the_newer_version[lead]
+FAILED tests/test_chat_actions_f1.py::test_lost_reprepare_response_cannot_execute_the_unseen_version[ticket]
+FAILED tests/test_chat_actions_f1.py::test_lost_reprepare_response_cannot_execute_the_unseen_version[lead]
+FAILED tests/test_chat_actions_f1.py::test_forged_or_foreign_tokens_execute_nothing
+FAILED tests/test_chat_actions_f1.py::test_pointer_to_another_conversations_action_fails_closed
+FAILED tests/test_chat_actions_f1.py::test_api_confirm_wins_against_chat_cancel_ticket
+FAILED tests/test_chat_actions_f1.py::test_workflow_completion_wins_against_chat_cancel_lead
+FAILED tests/test_chat_actions_f1.py::test_cancel_of_a_no_longer_pending_action_is_truthful[superseded]
+FAILED tests/test_chat_actions_f1.py::test_cancel_of_a_no_longer_pending_action_is_truthful[expired]
+FAILED tests/test_chat_actions_f1.py::test_race_chat_confirm_vs_chat_cancel_one_wins_loser_sees_truth
+FAILED tests/test_chat_actions_f1.py::test_race_cancel_during_interpretation_stale_proposal_not_published
+FAILED tests/test_chat_actions_f1.py::test_race_confirm_during_interpretation_stale_proposal_not_published
+FAILED tests/test_chat_actions_f1.py::test_revision_increments_on_every_state_change
+14 failed, 1 passed, 1 warning in 16.63s

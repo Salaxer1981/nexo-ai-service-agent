@@ -1,0 +1,174 @@
+# APP02-01 variant runs of tests/test_prepare_concurrency.py (sanitized: local paths only, no credentials)
+# V0 = original APP-02 code (no lock, no index): reproduces the audited finding.
+
+==================================================================
+== V0_original_APP02_no_lock_no_index
+==================================================================
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Scripts\python.exe
+rootdir: C:\Users\User\Desktop\nexo-ai-service-agent
+configfile: pytest.ini
+plugins: anyio-4.15.1
+collecting ... collected 7 items
+
+tests/test_prepare_concurrency.py::test_concurrent_prepare_same_group_is_serialized FAILED [ 14%]
+tests/test_prepare_concurrency.py::test_different_groups_do_not_block_or_supersede_each_other[other_customer] PASSED [ 28%]
+tests/test_prepare_concurrency.py::test_different_groups_do_not_block_or_supersede_each_other[other_conversation] PASSED [ 42%]
+tests/test_prepare_concurrency.py::test_different_groups_do_not_block_or_supersede_each_other[no_conversation] PASSED [ 57%]
+tests/test_prepare_concurrency.py::test_many_concurrent_prepares_leave_exactly_one_pending FAILED [ 71%]
+tests/test_prepare_concurrency.py::test_database_allows_only_one_pending_action_per_group FAILED [ 85%]
+tests/test_prepare_concurrency.py::test_lock_key_is_deterministic_and_group_specific PASSED [100%]
+
+================================== FAILURES ===================================
+______________ test_concurrent_prepare_same_group_is_serialized _______________
+tests\test_prepare_concurrency.py:127: in test_concurrent_prepare_same_group_is_serialized
+    assert _statuses(gate, [first_id, second_id]) == {first_id: "superseded", second_id: "pending"}
+E   AssertionError: assert {'6410b3ce-d3...3': 'pending'} == {'6410b3ce-d3...3': 'pending'}
+E     
+E     Omitting 1 identical items, use -vv to show
+E     Differing items:
+E     {'6410b3ce-d3de-4c7b-9e36-7ba17978203c': 'pending'} != {'6410b3ce-d3de-4c7b-9e36-7ba17978203c': 'superseded'}
+E     
+E     Full diff:
+E       {...
+E     
+E     ...Full output truncated (6 lines hidden), use '-vv' to show
+___________ test_many_concurrent_prepares_leave_exactly_one_pending ___________
+tests\test_prepare_concurrency.py:173: in test_many_concurrent_prepares_leave_exactly_one_pending
+    assert dict(rows) == {"pending": 1, "superseded": 5}
+E   AssertionError: assert {'pending': 3...uperseded': 3} == {'pending': 1...uperseded': 5}
+E     
+E     Differing items:
+E     {'pending': 3} != {'pending': 1}
+E     {'superseded': 3} != {'superseded': 5}
+E     
+E     Full diff:
+E       {...
+E     
+E     ...Full output truncated (9 lines hidden), use '-vv' to show
+___________ test_database_allows_only_one_pending_action_per_group ____________
+tests\test_prepare_concurrency.py:186: in test_database_allows_only_one_pending_action_per_group
+    with pytest.raises(psycopg.errors.UniqueViolation):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE UniqueViolation
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_prepare_concurrency.py::test_concurrent_prepare_same_group_is_serialized
+FAILED tests/test_prepare_concurrency.py::test_many_concurrent_prepares_leave_exactly_one_pending
+FAILED tests/test_prepare_concurrency.py::test_database_allows_only_one_pending_action_per_group
+=================== 3 failed, 4 passed, 1 warning in 10.10s ===================
+
+==================================================================
+== V1_index_only_no_lock
+==================================================================
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Scripts\python.exe
+rootdir: C:\Users\User\Desktop\nexo-ai-service-agent
+configfile: pytest.ini
+plugins: anyio-4.15.1
+collecting ... collected 7 items
+
+tests/test_prepare_concurrency.py::test_concurrent_prepare_same_group_is_serialized FAILED [ 14%]
+tests/test_prepare_concurrency.py::test_different_groups_do_not_block_or_supersede_each_other[other_customer] PASSED [ 28%]
+tests/test_prepare_concurrency.py::test_different_groups_do_not_block_or_supersede_each_other[other_conversation] PASSED [ 42%]
+tests/test_prepare_concurrency.py::test_different_groups_do_not_block_or_supersede_each_other[no_conversation] PASSED [ 57%]
+tests/test_prepare_concurrency.py::test_many_concurrent_prepares_leave_exactly_one_pending FAILED [ 71%]
+tests/test_prepare_concurrency.py::test_database_allows_only_one_pending_action_per_group PASSED [ 85%]
+tests/test_prepare_concurrency.py::test_lock_key_is_deterministic_and_group_specific PASSED [100%]
+
+================================== FAILURES ===================================
+______________ test_concurrent_prepare_same_group_is_serialized _______________
+tests\test_prepare_concurrency.py:124: in test_concurrent_prepare_same_group_is_serialized
+    waited_on = _race_pair(gate, t1, t2)
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+tests\test_prepare_concurrency.py:115: in _race_pair
+    _finish(first, second)
+tests\test_prepare_concurrency.py:92: in _finish
+    assert t.error is None, f"prepare() failed: {t.error!r}"
+E   AssertionError: prepare() failed: UniqueViolation('duplicate key value violates unique constraint "pending_ticket_actions_one_pending_per_group"\nDETAIL:  Key (customer_id, COALESCE(conversation_id, \'\'::text))=(CUSTOMER_A, race-e5d626ac6dd6) already exists.')
+E   assert UniqueViolation('duplicate key value violates unique constraint "pending_ticket_actions_one_pending_per_group"\nDETAIL:  Key (customer_id, COALESCE(conversation_id, \'\'::text))=(CUSTOMER_A, race-e5d626ac6dd6) already exists.') is None
+E    +  where UniqueViolation('duplicate key value violates unique constraint "pending_ticket_actions_one_pending_per_group"\nDETAIL:  Key (customer_id, COALESCE(conversation_id, \'\'::text))=(CUSTOMER_A, race-e5d626ac6dd6) already exists.') = <Prepare(Thread-2, stopped daemon 21396)>.error
+___________ test_many_concurrent_prepares_leave_exactly_one_pending ___________
+tests\test_prepare_concurrency.py:170: in test_many_concurrent_prepares_leave_exactly_one_pending
+    _finish(*threads)
+tests\test_prepare_concurrency.py:92: in _finish
+    assert t.error is None, f"prepare() failed: {t.error!r}"
+E   AssertionError: prepare() failed: UniqueViolation('duplicate key value violates unique constraint "pending_ticket_actions_one_pending_per_group"\nDETAIL:  Key (customer_id, COALESCE(conversation_id, \'\'::text))=(CUSTOMER_A, race-e1a4ad9efd1b) already exists.')
+E   assert UniqueViolation('duplicate key value violates unique constraint "pending_ticket_actions_one_pending_per_group"\nDETAIL:  Key (customer_id, COALESCE(conversation_id, \'\'::text))=(CUSTOMER_A, race-e1a4ad9efd1b) already exists.') is None
+E    +  where UniqueViolation('duplicate key value violates unique constraint "pending_ticket_actions_one_pending_per_group"\nDETAIL:  Key (customer_id, COALESCE(conversation_id, \'\'::text))=(CUSTOMER_A, race-e1a4ad9efd1b) already exists.') = <Prepare(Thread-69, stopped daemon 2116)>.error
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_prepare_concurrency.py::test_concurrent_prepare_same_group_is_serialized
+FAILED tests/test_prepare_concurrency.py::test_many_concurrent_prepares_leave_exactly_one_pending
+=================== 2 failed, 5 passed, 1 warning in 10.01s ===================
+
+==================================================================
+== V2_lock_only_no_index
+==================================================================
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Scripts\python.exe
+rootdir: C:\Users\User\Desktop\nexo-ai-service-agent
+configfile: pytest.ini
+plugins: anyio-4.15.1
+collecting ... collected 7 items
+
+tests/test_prepare_concurrency.py::test_concurrent_prepare_same_group_is_serialized PASSED [ 14%]
+tests/test_prepare_concurrency.py::test_different_groups_do_not_block_or_supersede_each_other[other_customer] PASSED [ 28%]
+tests/test_prepare_concurrency.py::test_different_groups_do_not_block_or_supersede_each_other[other_conversation] PASSED [ 42%]
+tests/test_prepare_concurrency.py::test_different_groups_do_not_block_or_supersede_each_other[no_conversation] PASSED [ 57%]
+tests/test_prepare_concurrency.py::test_many_concurrent_prepares_leave_exactly_one_pending PASSED [ 71%]
+tests/test_prepare_concurrency.py::test_database_allows_only_one_pending_action_per_group FAILED [ 85%]
+tests/test_prepare_concurrency.py::test_lock_key_is_deterministic_and_group_specific PASSED [100%]
+
+================================== FAILURES ===================================
+___________ test_database_allows_only_one_pending_action_per_group ____________
+tests\test_prepare_concurrency.py:186: in test_database_allows_only_one_pending_action_per_group
+    with pytest.raises(psycopg.errors.UniqueViolation):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE UniqueViolation
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_prepare_concurrency.py::test_database_allows_only_one_pending_action_per_group
+=================== 1 failed, 6 passed, 1 warning in 14.44s ===================
+
+==================================================================
+== V3_fix_lock_and_index
+==================================================================
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Scripts\python.exe
+rootdir: C:\Users\User\Desktop\nexo-ai-service-agent
+configfile: pytest.ini
+plugins: anyio-4.15.1
+collecting ... collected 7 items
+
+tests/test_prepare_concurrency.py::test_concurrent_prepare_same_group_is_serialized PASSED [ 14%]
+tests/test_prepare_concurrency.py::test_different_groups_do_not_block_or_supersede_each_other[other_customer] PASSED [ 28%]
+tests/test_prepare_concurrency.py::test_different_groups_do_not_block_or_supersede_each_other[other_conversation] PASSED [ 42%]
+tests/test_prepare_concurrency.py::test_different_groups_do_not_block_or_supersede_each_other[no_conversation] PASSED [ 57%]
+tests/test_prepare_concurrency.py::test_many_concurrent_prepares_leave_exactly_one_pending PASSED [ 71%]
+tests/test_prepare_concurrency.py::test_database_allows_only_one_pending_action_per_group PASSED [ 85%]
+tests/test_prepare_concurrency.py::test_lock_key_is_deterministic_and_group_specific PASSED [100%]
+
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 7 passed, 1 warning in 14.53s ========================
+

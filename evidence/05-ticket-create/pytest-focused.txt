@@ -1,0 +1,68 @@
+﻿# APP-02 focused tests (sanitized)
+# Date: 2026-10-06. Windows 11, Python 3.12.10 (.venv), throwaway PostgreSQL 17.11 per session (scram-sha-256, random port/password/tokens; never written to the repo).
+# Command: .venv\Scripts\python.exe -m pytest -v -p no:cacheprovider tests/test_ticket_create.py tests/test_priority_migration.py
+
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Scripts\python.exe
+rootdir: C:\Users\User\Desktop\nexo-ai-service-agent
+configfile: pytest.ini
+plugins: anyio-4.15.1
+collecting ... collected 48 items
+
+tests/test_ticket_create.py::test_prepare_creates_no_ticket PASSED       [  2%]
+tests/test_ticket_create.py::test_prepare_returns_summary_bound_to_exact_data PASSED [  4%]
+tests/test_ticket_create.py::test_confirm_creates_exactly_one_ticket_owned_by_caller PASSED [  6%]
+tests/test_ticket_create.py::test_customer_a_cannot_confirm_customer_b_action PASSED [  8%]
+tests/test_ticket_create.py::test_customer_id_input_cannot_override_authentication PASSED [ 10%]
+tests/test_ticket_create.py::test_changing_any_field_invalidates_previous_confirmation[contact_name-Someone Else (synthetic)] PASSED [ 12%]
+tests/test_ticket_create.py::test_changing_any_field_invalidates_previous_confirmation[subject-Synthetic: different subject] PASSED [ 14%]
+tests/test_ticket_create.py::test_changing_any_field_invalidates_previous_confirmation[description-Synthetic: different description.] PASSED [ 16%]
+tests/test_ticket_create.py::test_changing_any_field_invalidates_previous_confirmation[priority-normal] PASSED [ 18%]
+tests/test_ticket_create.py::test_same_key_same_action_returns_same_ticket_without_duplicates PASSED [ 20%]
+tests/test_ticket_create.py::test_same_key_with_different_request_conflicts PASSED [ 22%]
+tests/test_ticket_create.py::test_idempotency_keys_are_scoped_per_customer PASSED [ 25%]
+tests/test_ticket_create.py::test_retry_after_lost_response_returns_committed_ticket PASSED [ 27%]
+tests/test_ticket_create.py::test_consumed_confirmation_cannot_create_another_ticket PASSED [ 29%]
+tests/test_ticket_create.py::test_database_rejects_second_ticket_for_same_action PASSED [ 31%]
+tests/test_ticket_create.py::test_concurrent_confirmations_create_one_ticket[True] PASSED [ 33%]
+tests/test_ticket_create.py::test_concurrent_confirmations_create_one_ticket[False] PASSED [ 35%]
+tests/test_ticket_create.py::test_missing_or_invalid_idempotency_key_is_rejected[None] PASSED [ 37%]
+tests/test_ticket_create.py::test_missing_or_invalid_idempotency_key_is_rejected[] PASSED [ 39%]
+tests/test_ticket_create.py::test_missing_or_invalid_idempotency_key_is_rejected[has space] PASSED [ 41%]
+tests/test_ticket_create.py::test_missing_or_invalid_idempotency_key_is_rejected[xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx] PASSED [ 43%]
+tests/test_ticket_create.py::test_missing_or_invalid_idempotency_key_is_rejected[bad/char] PASSED [ 45%]
+tests/test_ticket_create.py::test_invalid_priority_is_rejected[urgent] PASSED [ 47%]
+tests/test_ticket_create.py::test_invalid_priority_is_rejected[high] PASSED [ 50%]
+tests/test_ticket_create.py::test_invalid_priority_is_rejected[medium] PASSED [ 52%]
+tests/test_ticket_create.py::test_invalid_priority_is_rejected[low] PASSED [ 54%]
+tests/test_ticket_create.py::test_invalid_priority_is_rejected[Critical] PASSED [ 56%]
+tests/test_ticket_create.py::test_invalid_priority_is_rejected[] PASSED  [ 58%]
+tests/test_ticket_create.py::test_invalid_priority_is_rejected[None] PASSED [ 60%]
+tests/test_ticket_create.py::test_canonical_priorities_create_tickets[normal] PASSED [ 62%]
+tests/test_ticket_create.py::test_canonical_priorities_create_tickets[critical] PASSED [ 64%]
+tests/test_ticket_create.py::test_plain_confirmed_flag_cannot_bypass_binding PASSED [ 66%]
+tests/test_ticket_create.py::test_no_ticket_when_confirmation_validation_fails PASSED [ 68%]
+tests/test_ticket_create.py::test_database_unavailable_never_reports_success PASSED [ 70%]
+tests/test_ticket_create.py::test_failure_inside_transaction_rolls_back_ticket PASSED [ 72%]
+tests/test_ticket_create.py::test_audit_log_records_ids_and_outcomes PASSED [ 75%]
+tests/test_ticket_create.py::test_audit_log_contains_no_credentials_or_ticket_content PASSED [ 77%]
+tests/test_priority_migration.py::test_seed_priorities_are_mapped_to_normal PASSED [ 79%]
+tests/test_priority_migration.py::test_canonical_priorities_are_accepted[normal] PASSED [ 81%]
+tests/test_priority_migration.py::test_canonical_priorities_are_accepted[critical] PASSED [ 83%]
+tests/test_priority_migration.py::test_legacy_or_unknown_priorities_are_rejected[low] PASSED [ 85%]
+tests/test_priority_migration.py::test_legacy_or_unknown_priorities_are_rejected[medium] PASSED [ 87%]
+tests/test_priority_migration.py::test_legacy_or_unknown_priorities_are_rejected[high] PASSED [ 89%]
+tests/test_priority_migration.py::test_legacy_or_unknown_priorities_are_rejected[urgent] PASSED [ 91%]
+tests/test_priority_migration.py::test_legacy_or_unknown_priorities_are_rejected[Critical] PASSED [ 93%]
+tests/test_priority_migration.py::test_legacy_or_unknown_priorities_are_rejected[] PASSED [ 95%]
+tests/test_priority_migration.py::test_migration_refuses_to_guess_high_or_urgent[high] PASSED [ 97%]
+tests/test_priority_migration.py::test_migration_refuses_to_guess_high_or_urgent[urgent] PASSED [100%]
+
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\User\Desktop\nexo-ai-service-agent\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 48 passed, 1 warning in 32.16s ========================
+

@@ -1,0 +1,20 @@
+# AGENT-01BF1 regression (2026-10-07)
+
+AGENT-01A tests/test_agent.py
+    60 passed, 1 warning in 27.92s
+AGENT-01B tests/test_chat_actions.py
+    61 passed, 1 warning in 51.62s
+AGENT-01BF1 tests/test_chat_actions_f1.py
+    15 passed, 1 warning in 25.65s
+APP-02 tests/test_ticket_create.py + test_prepare_concurrency.py
+    44 passed, 1 warning in 34.75s
+APP-03B tests/test_leads.py
+    41 passed, 1 warning in 26.89s
+migrations: tests/test_migrations.py + test_startup_commands.py
+    12 passed, 1 warning in 13.98s
+
+FULL (single final run, after all mutations)
+    ============ 393 passed, 8 skipped, 1 warning in 187.93s (0:03:07) ============
+
+Skipped = opt-in only (evidence dumps; live OpenRouter smokes). No live OpenRouter call was made in AGENT-01BF1;
+tests/test_chat_actions_live.py was updated to echo the confirmation_token but NOT re-run.

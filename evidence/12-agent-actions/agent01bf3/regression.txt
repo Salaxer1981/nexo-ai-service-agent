@@ -1,0 +1,23 @@
+# AGENT-01BF3 regression (2026-10-07)
+
+AGENT-01A tests/test_agent.py
+    60 passed, 1 warning in 29.07s
+AGENT-01B tests/test_chat_actions.py
+    61 passed, 1 warning in 54.17s
+AGENT-01BF1 tests/test_chat_actions_f1.py
+    15 passed, 1 warning in 25.46s
+AGENT-01BF2 tests/test_chat_actions_f2.py (T1-T5 incl. lost response)
+    8 passed, 1 warning in 16.54s
+AGENT-01BF3 tests/test_chat_actions_f3.py
+    7 passed, 1 warning in 15.85s
+APP-02 tests/test_ticket_create.py + test_prepare_concurrency.py
+    44 passed, 1 warning in 34.45s
+APP-03B tests/test_leads.py
+    41 passed, 1 warning in 27.71s
+migrations: tests/test_migrations.py + test_startup_commands.py
+    12 passed, 1 warning in 14.24s
+
+FULL (single final run, after all mutations)
+    ============ 408 passed, 8 skipped, 1 warning in 210.39s (0:03:30) ============
+
+Skipped = opt-in only. No live OpenRouter call. No schema change.

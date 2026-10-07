@@ -1,0 +1,67 @@
+# APP02-01 repeated runs (2026-10-06)
+
+A concurrent-prepare run 1: ======================== 7 passed, 1 warning in 14.17s ========================
+A concurrent-prepare run 2: ======================== 7 passed, 1 warning in 14.26s ========================
+A concurrent-prepare run 3: ======================== 7 passed, 1 warning in 14.79s ========================
+A concurrent-prepare run 4: ======================== 7 passed, 1 warning in 15.21s ========================
+A concurrent-prepare run 5: ======================== 7 passed, 1 warning in 14.54s ========================
+A concurrent-prepare run 6: ======================== 7 passed, 1 warning in 14.15s ========================
+A concurrent-prepare run 7: ======================== 7 passed, 1 warning in 14.18s ========================
+A concurrent-prepare run 8: ======================== 7 passed, 1 warning in 14.49s ========================
+A concurrent-prepare run 9: ======================== 7 passed, 1 warning in 14.13s ========================
+A concurrent-prepare run 10: ======================== 7 passed, 1 warning in 14.60s ========================
+B_app02_concurrency: ======================== 4 passed, 1 warning in 9.26s =========================
+C_app02_focused: ======================= 55 passed, 1 warning in 39.24s ========================
+D_app01_authz: ======================= 24 passed, 1 warning in 17.38s ========================
+E_migrations: ======================= 22 passed, 1 warning in 16.73s ========================
+F_full_run1: ================= 115 passed, 1 skipped, 1 warning in 52.27s ==================
+F_full_run2: ================= 115 passed, 1 skipped, 1 warning in 53.30s ==================
+F_full_run3: ================= 115 passed, 1 skipped, 1 warning in 52.83s ==================
+
+## G: M1-M5 mutation checks against the fixed code
+## M1: M1 idempotency lookup disabled
+   FAILED test_audit_log_records_ids_and_outcomes
+   FAILED test_concurrent_confirmations_create_one_ticket[True]
+   FAILED test_retry_after_lost_response_returns_committed_ticket
+   FAILED test_same_key_same_action_returns_same_ticket_without_duplicates
+   FAILED test_same_key_with_different_request_conflicts
+## M2: M2 fingerprint check disabled
+   FAILED test_changing_any_field_invalidates_previous_confirmation[contact_name-Someone
+   FAILED test_changing_any_field_invalidates_previous_confirmation[description-Synthetic:
+   FAILED test_changing_any_field_invalidates_previous_confirmation[priority-normal]
+   FAILED test_changing_any_field_invalidates_previous_confirmation[subject-Synthetic:
+   FAILED test_no_ticket_when_confirmation_validation_fails
+## M3: M3 consumed/superseded/expired status checks disabled
+   FAILED test_changing_any_field_invalidates_previous_confirmation[contact_name-Someone
+   FAILED test_changing_any_field_invalidates_previous_confirmation[description-Synthetic:
+   FAILED test_changing_any_field_invalidates_previous_confirmation[priority-normal]
+   FAILED test_changing_any_field_invalidates_previous_confirmation[subject-Synthetic:
+   FAILED test_no_ticket_when_confirmation_validation_fails
+## M4: M4 ownership filter removed from action lookup
+   FAILED test_customer_a_cannot_confirm_customer_b_action
+## M5: M5 re-prepare no longer supersedes older actions
+   FAILED test_audit_log_contains_no_credentials_or_ticket_content
+   FAILED test_canonical_priorities_create_tickets[critical]
+   FAILED test_canonical_priorities_create_tickets[normal]
+   FAILED test_changing_any_field_invalidates_previous_confirmation[contact_name-Someone
+   FAILED test_changing_any_field_invalidates_previous_confirmation[description-Synthetic:
+   FAILED test_changing_any_field_invalidates_previous_confirmation[priority-normal]
+   FAILED test_changing_any_field_invalidates_previous_confirmation[subject-Synthetic:
+   FAILED test_concurrent_confirmations_create_one_ticket[False]
+   FAILED test_concurrent_confirmations_create_one_ticket[True]
+   FAILED test_confirm_creates_exactly_one_ticket_owned_by_caller
+   FAILED test_consumed_confirmation_cannot_create_another_ticket
+   FAILED test_customer_id_input_cannot_override_authentication
+   FAILED test_database_rejects_second_ticket_for_same_action
+   FAILED test_failure_inside_transaction_rolls_back_ticket
+   FAILED test_idempotency_keys_are_scoped_per_customer
+   FAILED test_missing_or_invalid_idempotency_key_is_rejected[None]
+   FAILED test_missing_or_invalid_idempotency_key_is_rejected[]
+   FAILED test_missing_or_invalid_idempotency_key_is_rejected[bad/char]
+   FAILED test_missing_or_invalid_idempotency_key_is_rejected[has
+   FAILED test_missing_or_invalid_idempotency_key_is_rejected[xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx]
+   FAILED test_plain_confirmed_flag_cannot_bypass_binding
+   FAILED test_prepare_returns_summary_bound_to_exact_data
+   FAILED test_retry_after_lost_response_returns_committed_ticket
+   FAILED test_same_key_same_action_returns_same_ticket_without_duplicates
+restored: True

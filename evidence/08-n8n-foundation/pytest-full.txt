@@ -1,0 +1,4 @@
+# N8N-01 full test suite (local)
+SKIPPED [1] tests\test_evidence_dump.py:18: evidence dump only when NEXO_EVIDENCE_DIR is set
+SKIPPED [1] tests\test_evidence_dump_handoffs.py:14: evidence dump only when NEXO_EVIDENCE_DIR is set
+170 passed, 2 skipped, 1 warning in 63.50s (0:01:03)

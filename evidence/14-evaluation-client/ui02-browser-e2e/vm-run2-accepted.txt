@@ -1,0 +1,242 @@
+# UI-02 — ACCEPTED harness run (stack + browser E2E window + teardown). 28/28 harness CHECK PASS.
+# REAL VM (Ubuntu 24.04.4, Docker 29.8.2). Candidate ca86d7c3459f713319aa80de482cbcdb8c22fa01 (branch ui02-candidate).
+# Sanitized copy of raw/run.raw.log: 0 docker pull-progress lines removed; nothing else changed. OpenRouter key: 0; control token: 0.
+
+
+===== 0. PRE-CHECKS (VM preflight) =====
+pre-checks passed
+$ sh -c . /etc/os-release; echo "$PRETTY_NAME"
+Ubuntu 24.04.4 LTS
+$ docker --version
+Docker version 29.8.2, build 7fc2dff
+$ docker compose version
+Docker Compose version v5.6.0
+$ free -m
+               total        used        free      shared  buff/cache   available
+Mem:            3915         632        2560           0        1014        3283
+Swap:           3914           1        3913
+$ df -h /
+Filesystem                         Size  Used Avail Use% Mounted on
+/dev/mapper/ubuntu--vg-ubuntu--lv   47G  7,3G   38G  17% /
+$ docker ps -a
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+$ docker system df
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          0         0         0B        0B
+Containers      0         0         0B        0B
+Local Volumes   0         0         0B        0B
+Build Cache     0         0         0B        0B
+$ ss -tlnH
+LISTEN 0      4096         0.0.0.0:9922 0.0.0.0:*
+LISTEN 0      4096      127.0.0.54:53   0.0.0.0:*
+LISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*
+LISTEN 0      4096            [::]:9922    [::]:*
+
+===== 1. RECEIVE OPENROUTER KEY + CONTROL TOKEN (stdin, never printed) + BUNDLE =====
+key and control token received on stdin: format ok, stored in 600-mode files (values not shown)
+CHECK PASS: bundle sha256 matches the local bundle
+
+===== 2. CHECKOUT EXACT COMMIT =====
+$ git clone -q /home/user/nexo-ui02/ui02.bundle /home/user/nexo-ui02/repo
+warning: remote HEAD refers to nonexistent ref, unable to checkout
+CHECK PASS: checked-out commit is ca86d7c3459f713319aa80de482cbcdb8c22fa01
+CHECK PASS: working tree clean (no edits)
+
+===== 3. VM-LOCAL SECRETS (generated; OpenRouter key from the 600-mode file; never printed) =====
+$ stat -c %A %n .env /home/user/nexo-ui02/ork /home/user/nexo-ui02/control.token /home/user/nexo-ui02/lead_writer.token /home/user/nexo-ui02/cred.json
+-rw------- .env
+-rw------- /home/user/nexo-ui02/ork
+-rw------- /home/user/nexo-ui02/control.token
+-rw------- /home/user/nexo-ui02/lead_writer.token
+-rw------- /home/user/nexo-ui02/cred.json
+.env names: POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD AUTH_TOKEN_CUSTOMER_A AUTH_TOKEN_CUSTOMER_B N8N_ENCRYPTION_KEY LEAD_WRITER_TOKEN_SHA256 OPENROUTER_API_KEY 
+
+===== 4. CONFIG + BUILD + START (db, backend, n8n, web) =====
+CHECK PASS: docker compose config valid (output not printed: it would contain secrets)
+CHECK PASS: web service has no build args
+#18 [web build 4/7] RUN npm ci --no-audit --no-fund
+#18 [web build 4/7] RUN npm ci --no-audit --no-fund
+#18 4.700 added 227 packages in 4s
+#22 [web build 5/7] COPY index.html tsconfig.json vite.config.js ./
+#24 0.287 > tsc -b && vite build
+#24 3.870 vite v8.3.3 building client environment for production...
+#24 4.028 ✓ built in 156ms
+$ docker compose up -d --wait --wait-timeout 300
+ Image pgvector/pgvector:0.8.7-pg17-bookworm Pulling 
+ Image n8nio/n8n:2.42.3 Pulling 
+ Image pgvector/pgvector:0.8.7-pg17-bookworm Pulled 
+ Image n8nio/n8n:2.42.3 Pulled 
+ Volume nexo_db_data Creating 
+ Volume nexo_n8n_data Creating 
+ Volume nexo_db_data Creating 
+ Volume nexo_n8n_data Creating 
+ Network nexo_automation Creating 
+ Network nexo_automation Creating 
+ Network nexo_internal Creating 
+ Network nexo_internal Creating 
+ Network nexo_web Creating 
+ Network nexo_web Creating 
+ Volume nexo_db_data Created 
+ Volume nexo_db_data Created 
+ Volume nexo_n8n_data Created 
+ Volume nexo_n8n_data Created 
+ Network nexo_internal Created 
+ Network nexo_internal Created 
+ Container nexo-db-1 Creating 
+ Network nexo_automation Created 
+ Network nexo_automation Created 
+ Container nexo-n8n-1 Creating 
+ Network nexo_web Created 
+ Network nexo_web Created 
+ Container nexo-db-1 Created 
+ Container nexo-backend-1 Creating 
+ Container nexo-n8n-1 Created 
+ Container nexo-backend-1 Created 
+ Container nexo-web-1 Creating 
+ Container nexo-web-1 Created 
+ Container nexo-db-1 Starting 
+ Container nexo-n8n-1 Starting 
+ Container nexo-db-1 Started 
+ Container nexo-n8n-1 Started 
+ Container nexo-db-1 Healthy 
+ Container nexo-backend-1 Starting 
+ Container nexo-backend-1 Started 
+ Container nexo-backend-1 Healthy 
+ Container nexo-web-1 Starting 
+ Container nexo-web-1 Started 
+ Container nexo-db-1 Healthy 
+ Container nexo-n8n-1 Healthy 
+ Container nexo-backend-1 Healthy 
+ Container nexo-web-1 Healthy 
+$ docker compose ps --format table {{.Service}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}
+SERVICE   IMAGE                                   STATUS                    PORTS
+backend   nexo-backend:0.1.0                      Up 11 seconds (healthy)   127.0.0.1:8000->8000/tcp
+db        pgvector/pgvector:0.8.7-pg17-bookworm   Up 16 seconds (healthy)   5432/tcp
+n8n       n8nio/n8n:2.42.3                        Up 16 seconds (healthy)   127.0.0.1:5678->5678/tcp
+web       nexo-web:0.1.0                          Up 5 seconds (healthy)    127.0.0.1:8080->8080/tcp
+CHECK PASS: db healthy
+CHECK PASS: backend healthy
+CHECK PASS: n8n healthy
+CHECK PASS: web healthy
+--- web startup: nexo-web listening on 0.0.0.0:8080; backend http://backend:8000; demo sessions: A,B
+
+===== 5. MIGRATIONS + SCHEMA =====
+CHECK PASS: schema_migrations == files 0001..0009 (identical checksums)
+seed refs: T-1001=CUSTOMER_A, T-1002=CUSTOMER_B
+
+===== 6. NETWORK / EXPOSURE / BOUNDARIES =====
+$ ss -tlnH
+LISTEN 0      4096       127.0.0.1:8000 0.0.0.0:*
+LISTEN 0      4096       127.0.0.1:8080 0.0.0.0:*
+LISTEN 0      4096       127.0.0.1:5678 0.0.0.0:*
+LISTEN 0      4096         0.0.0.0:9922 0.0.0.0:*
+LISTEN 0      4096      127.0.0.54:53   0.0.0.0:*
+LISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*
+LISTEN 0      4096            [::]:9922    [::]:*
+CHECK PASS: web only 127.0.0.1:8080
+CHECK PASS: backend only 127.0.0.1:8000; n8n only 127.0.0.1:5678
+CHECK PASS: db no published port; no :5432 listener
+CHECK PASS: public listeners only :9922
+web networks: nexo_web 
+backend networks: nexo_automation nexo_internal nexo_web 
+n8n networks: nexo_automation 
+db networks: nexo_internal 
+CHECK PASS: web only on nexo_web; n8n only on nexo_automation; db only on nexo_internal
+CHECK PASS: web reaches backend /health/ready
+CHECK PASS: web cannot resolve db nor n8n
+CHECK PASS: web container: read-only rootfs, non-root, no capabilities
+runtime config: chat model=x-ai/grok-4.7 | client=OpenRouterChatClient(model='x-ai/grok-4.7') | embeddings=openai/text-embedding-3-small | min_score=0.39
+
+===== 7. REAL n8n: credential + workflow (supported CLI) =====
+ nexo-n8n-1 Copying /home/user/nexo-ui02/cred.json to nexo-n8n-1:/tmp/cred.json
+ nexo-n8n-1 Copied /home/user/nexo-ui02/cred.json to nexo-n8n-1:/tmp/cred.json
+$ n8n_cli import:credentials --input=/tmp/cred.json
+Successfully imported 1 credential.
+CHECK PASS: temporary credential files deleted (host + container)
+ nexo-n8n-1 Copying n8n/workflows/nexo-lead-create.json to nexo-n8n-1:/tmp/nexo-lead-create.json
+ nexo-n8n-1 Copied n8n/workflows/nexo-lead-create.json to nexo-n8n-1:/tmp/nexo-lead-create.json
+$ n8n_cli import:workflow --input=/tmp/nexo-lead-create.json
+Importing 1 workflows...
+Successfully imported 1 workflow.
+activation command used: n8n publish:workflow --id=NexoLeadCreate01
+$ n8n_cli publish:workflow --id=NexoLeadCreate01
+Publishing workflow with ID: NexoLeadCreate01 (current version)
+Note: Changes will not take effect if n8n is running.
+Please restart n8n for changes to take effect if n8n is currently running.
+$ docker compose restart n8n
+ Container nexo-n8n-1 Restarting 
+ Container nexo-n8n-1 Started 
+$ docker compose up -d --wait --wait-timeout 180 n8n
+ Container nexo-n8n-1 Running 
+ Container nexo-n8n-1 Waiting 
+ Container nexo-n8n-1 Healthy 
+CHECK PASS: n8n healthy after activation restart
+
+===== 8. RAG INGESTION (REAL embeddings) =====
+rag_ingest {"chunks": 10, "deleted_chunks": 0, "deleted_documents": 0, "documents": 4, "embedded": 10, "model": "openai/text-embedding-3-small", "new": 4, "unchanged": 0, "updated": 0}
+CHECK PASS: web /api/health/ready through the server-side boundary
+
+===== 9. CONTROL ENDPOINT (127.0.0.1:8099, token-protected, allowlisted actions only) =====
+STACK READY FOR BROWSER E2E: web http://127.0.0.1:8080 (via tunnel). Waiting for /teardown (auto-teardown after 3 h idle).
+control endpoint ready on 127.0.0.1:8099
+[heartbeat 16:08:48]
+[heartbeat 16:09:48]
+[heartbeat 16:10:49]
+[heartbeat 16:12:16]
+[heartbeat 16:13:20]
+[heartbeat 16:14:30]
+[heartbeat 16:15:36]
+[heartbeat 16:16:54]
+[heartbeat 16:18:12]
+[heartbeat 16:19:18]
+[heartbeat 16:20:18]
+[heartbeat 16:21:18]
+control endpoint stopped: teardown requested
+
+===== 10. FINAL SECRET SCAN OF THIS RUN LOG (before cleanup) =====
+CHECK PASS: POSTGRES_PASSWORD value not in run log or container logs
+CHECK PASS: AUTH_TOKEN_CUSTOMER_A value not in run log or container logs
+CHECK PASS: AUTH_TOKEN_CUSTOMER_B value not in run log or container logs
+CHECK PASS: N8N_ENCRYPTION_KEY value not in run log or container logs
+CHECK PASS: OPENROUTER_API_KEY value not in run log or container logs
+CHECK PASS: lead-writer token not in logs
+CHECK PASS: control token not in logs
+final: tickets=4 leads=2 handoffs=3
+UI-02 VM HARNESS: ALL HARNESS CHECKS PASS
+
+===== 11. CLEANUP (temporary validation: full teardown) =====
+ Network nexo_web Removing 
+ Volume nexo_db_data Removed 
+ Volume nexo_n8n_data Removed 
+ Network nexo_automation Removed 
+ Network nexo_internal Removed 
+ Network nexo_web Removed 
+Untagged: n8nio/n8n:2.42.3
+Deleted: sha256:240eaa2a3d491adac5817aa4c3f1c521bb18ec79f6e448517158d5220ee0f37b
+Untagged: pgvector/pgvector:0.8.7-pg17-bookworm
+Deleted: sha256:ac08538c6f8b9904c33c8224c5e5706dbe760aca29db1d096972b4052c22a75d
+Untagged: nexo-web:0.1.0
+Deleted: sha256:bf7b9a832f5d23c57854214c1351a82a4380728277d902a0dd9a8ca49ce854e2
+Total:	731.3MB
+
+===== 12. FINAL STATE =====
+$ docker ps -a
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+$ docker images
+IMAGE   ID             DISK USAGE   CONTENT SIZE   EXTRA
+$ docker volume ls
+DRIVER    VOLUME NAME
+$ docker system df
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          0         0         0B        0B
+Containers      0         0         0B        0B
+Local Volumes   0         0         0B        0B
+Build Cache     0         0         0B        0B
+$ ss -tlnH
+LISTEN 0      4096         0.0.0.0:9922 0.0.0.0:*
+LISTEN 0      4096      127.0.0.54:53   0.0.0.0:*
+LISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*
+LISTEN 0      4096            [::]:9922    [::]:*
+nexo containers: 0
+no :8000/:5432/:5678/:8080/:8099 listener
+temporary directory removed (checkout, .env, key, tokens, bundle, control script)

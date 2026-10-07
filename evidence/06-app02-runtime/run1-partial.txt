@@ -1,0 +1,504 @@
+# APP-02V1 VM runtime validation — RUN 1 (NOT accepted: PARTIAL), sanitized
+# Captured: 2026-10-06 ~15:58-15:59 UTC, same candidate commit. 78 CHECK PASS, 2 CHECK FAIL (section 10).
+# Cause: validation-script defect, not an application defect. The audit-log check ran after the persistence
+# step's 'docker compose down', which deletes container logs, so only the 4 post-restart requests were visible.
+# Fixed in run.sh (phase-1 logs saved before restart); re-run as RUN 2. Kept for audit history. CRs removed only.
+
+
+===== 0. PRE-CHECKS =====
+pre-checks passed
+$ date -u
+mar 06 oct 2026 15:58:34 UTC
+$ docker system df
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          0         0         0B        0B
+Containers      0         0         0B        0B
+Local Volumes   0         0         0B        0B
+Build Cache     0         0         0B        0B
+
+===== 1. CHECKOUT EXACT COMMIT =====
+$ git clone -q /home/user/nexo-app02v1/app02.bundle /home/user/nexo-app02v1/repo
+warning: remote HEAD refers to nonexistent ref, unable to checkout
+VM checkout HEAD: 1284f98197a3f0cbd21b1449397579807d8c4d58
+CHECK PASS: checked-out commit is 1284f98197a3f0cbd21b1449397579807d8c4d58
+CHECK PASS: working tree clean
+
+===== 2. VM-LOCAL .env (generated; values never printed) =====
+$ stat -c %A %U %n .env
+-rw------- user .env
+.env variable names: POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD AUTH_TOKEN_CUSTOMER_A AUTH_TOKEN_CUSTOMER_B BACKEND_PORT 
+CHECK PASS: .env ignored by git
+
+===== 3. COMPOSE CONFIG + BUILD =====
+CHECK PASS: docker compose config valid
+--- resolved backend/db environment keys (values redacted):
+    environment:
+      AUTH_TOKEN_CUSTOMER_A: <REDACTED>
+      AUTH_TOKEN_CUSTOMER_B: <REDACTED>
+      POSTGRES_DB: nexo
+      POSTGRES_HOST: db
+      POSTGRES_PASSWORD: <REDACTED>
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: nexo
+    image: nexo-backend:0.1.0
+    environment:
+      POSTGRES_DB: nexo
+      POSTGRES_PASSWORD: <REDACTED>
+      POSTGRES_USER: nexo
+    image: pgvector/pgvector:0.8.7-pg17-bookworm
+#12 naming to docker.io/library/nexo-backend:0.1.0 done
+#12 unpacking to docker.io/library/nexo-backend:0.1.0
+#12 unpacking to docker.io/library/nexo-backend:0.1.0 1.7s done
+#12 DONE 3.2s
+
+#13 resolving provenance for metadata file
+#13 DONE 0.0s
+ Image nexo-backend:0.1.0 Built 
+CHECK PASS: backend image built
+
+===== 4. START (db healthy -> backend migrates, provisions, serves, healthy) =====
+$ docker compose up -d --wait --wait-timeout 180
+ Image pgvector/pgvector:0.8.7-pg17-bookworm Pulling 
+ 55601d7a9d50 Pulling fs layer 0B
+ e1eef2f0f6c0 Pulling fs layer 0B
+ 3393b06e3522 Pulling fs layer 0B
+ 2049766aed7c Pulling fs layer 0B
+ 89e6130c295b Pulling fs layer 0B
+ 8bd8ce8492d5 Pulling fs layer 0B
+ 6cb8fb654a8d Pulling fs layer 0B
+ c0ca64f2011e Pulling fs layer 0B
+ 8eaf27f6576d Pulling fs layer 0B
+ 7aa71304d2ca Pulling fs layer 0B
+ ee67d2d59980 Pulling fs layer 0B
+ c70c031f679d Pulling fs layer 0B
+ 29edd5ac10d9 Pulling fs layer 0B
+ f4baa57a3cc7 Pulling fs layer 0B
+ 774043ccc8cc Pulling fs layer 0B
+ dce7e4753c95 Pulling fs layer 0B
+ dce7e4753c95 Downloading 905.2kB
+ dce7e4753c95 Download complete 0B
+ 6cb8fb654a8d Downloading 2.097MB
+ 6cb8fb654a8d Downloading 7.34MB
+ 55601d7a9d50 Download complete 0B
+ e1eef2f0f6c0 Downloading 1.049MB
+ e1eef2f0f6c0 Download complete 0B
+ 3393b06e3522 Downloading 1.049MB
+ 6cb8fb654a8d Downloading 12.58MB
+ 3393b06e3522 Downloading 5.243MB
+ 6cb8fb654a8d Downloading 16.78MB
+ 3393b06e3522 Download complete 0B
+ 2049766aed7c Download complete 0B
+ 6cb8fb654a8d Downloading 20.97MB
+ 6cb8fb654a8d Downloading 27.26MB
+ 89e6130c295b Download complete 0B
+ c0ca64f2011e Download complete 0B
+ 6cb8fb654a8d Downloading 33.55MB
+ 8bd8ce8492d5 Download complete 0B
+ 6cb8fb654a8d Downloading 39.85MB
+ 8eaf27f6576d Download complete 0B
+ 6cb8fb654a8d Downloading 47.19MB
+ ee67d2d59980 Download complete 0B
+ 7aa71304d2ca Download complete 0B
+ c70c031f679d Download complete 0B
+ 774043ccc8cc Downloading 3.146MB
+ 6cb8fb654a8d Downloading 52.43MB
+ 6cb8fb654a8d Downloading 57.67MB
+ 29edd5ac10d9 Download complete 0B
+ 774043ccc8cc Downloading 7.34MB
+ f4baa57a3cc7 Download complete 0B
+ 774043ccc8cc Downloading 11.53MB
+ 6cb8fb654a8d Downloading 61.87MB
+ 6cb8fb654a8d Downloading 66.06MB
+ 774043ccc8cc Downloading 16.78MB
+ 774043ccc8cc Downloading 22.02MB
+ 6cb8fb654a8d Downloading 70.25MB
+ 774043ccc8cc Downloading 27.26MB
+ 6cb8fb654a8d Downloading 75.5MB
+ 774043ccc8cc Download complete 0B
+ 6cb8fb654a8d Downloading 80.74MB
+ 774043ccc8cc Extracting 1B
+ 5d672a3ccfa8 Download complete 0B
+ 6cb8fb654a8d Downloading 84.93MB
+ 774043ccc8cc Extracting 1B
+ 6cb8fb654a8d Downloading 90.18MB
+ 774043ccc8cc Extracting 1B
+ 6cb8fb654a8d Downloading 95.42MB
+ 774043ccc8cc Extracting 1B
+ 6cb8fb654a8d Downloading 100.7MB
+ 774043ccc8cc Extracting 1B
+ 6cb8fb654a8d Downloading 105.9MB
+ 774043ccc8cc Extracting 1B
+ 6cb8fb654a8d Downloading 111.1MB
+ 774043ccc8cc Extracting 1B
+ 6cb8fb654a8d Download complete 0B
+ 774043ccc8cc Extracting 1B
+ 774043ccc8cc Extracting 1B
+ 774043ccc8cc Extracting 1B
+ 774043ccc8cc Extracting 1B
+ dce7e4753c95 Extracting 1B
+ f4baa57a3cc7 Pull complete 0B
+ 774043ccc8cc Pull complete 0B
+ dce7e4753c95 Pull complete 0B
+ 55601d7a9d50 Pull complete 0B
+ 3393b06e3522 Extracting 1B
+ 3393b06e3522 Extracting 1B
+ 3393b06e3522 Pull complete 0B
+ 2049766aed7c Pull complete 0B
+ 89e6130c295b Pull complete 0B
+ 8bd8ce8492d5 Pull complete 0B
+ 6cb8fb654a8d Extracting 1B
+ 6cb8fb654a8d Extracting 1B
+ 6cb8fb654a8d Extracting 1B
+ 6cb8fb654a8d Extracting 1B
+ 6cb8fb654a8d Extracting 1B
+ 6cb8fb654a8d Extracting 1B
+ 6cb8fb654a8d Extracting 1B
+ 6cb8fb654a8d Extracting 1B
+ 6cb8fb654a8d Extracting 1B
+ 6cb8fb654a8d Extracting 1B
+ 6cb8fb654a8d Extracting 2B
+ 6cb8fb654a8d Extracting 2B
+ 6cb8fb654a8d Extracting 2B
+ 6cb8fb654a8d Extracting 2B
+ 6cb8fb654a8d Extracting 2B
+ 6cb8fb654a8d Extracting 2B
+ 6cb8fb654a8d Extracting 2B
+ 6cb8fb654a8d Extracting 2B
+ 6cb8fb654a8d Extracting 2B
+ 6cb8fb654a8d Extracting 2B
+ 6cb8fb654a8d Extracting 3B
+ 6cb8fb654a8d Extracting 3B
+ 6cb8fb654a8d Extracting 3B
+ 6cb8fb654a8d Extracting 3B
+ 6cb8fb654a8d Extracting 3B
+ 6cb8fb654a8d Extracting 3B
+ c0ca64f2011e Pull complete 0B
+ 8eaf27f6576d Pull complete 0B
+ ee67d2d59980 Pull complete 0B
+ 7aa71304d2ca Pull complete 0B
+ c70c031f679d Pull complete 0B
+ 29edd5ac10d9 Extracting 1B
+ 6cb8fb654a8d Pull complete 0B
+ e1eef2f0f6c0 Extracting 1B
+ 29edd5ac10d9 Pull complete 0B
+ e1eef2f0f6c0 Pull complete 0B
+ Image pgvector/pgvector:0.8.7-pg17-bookworm Pulled 
+ Network nexo_internal Creating 
+ Network nexo_internal Creating 
+ Volume nexo_db_data Creating 
+ Volume nexo_db_data Creating 
+ Volume nexo_db_data Created 
+ Volume nexo_db_data Created 
+ Network nexo_internal Created 
+ Network nexo_internal Created 
+ Container nexo-db-1 Creating 
+ Container nexo-db-1 Created 
+ Container nexo-backend-1 Creating 
+ Container nexo-backend-1 Created 
+ Container nexo-db-1 Starting 
+ Container nexo-db-1 Started 
+ Container nexo-db-1 Waiting 
+ Container nexo-db-1 Healthy 
+ Container nexo-backend-1 Starting 
+ Container nexo-backend-1 Started 
+ Container nexo-backend-1 Waiting 
+ Container nexo-db-1 Waiting 
+ Container nexo-db-1 Healthy 
+ Container nexo-backend-1 Healthy 
+$ docker compose ps --format table {{.Service}}\t{{.Status}}\t{{.Ports}}
+SERVICE   STATUS                    PORTS
+backend   Up 5 seconds (healthy)    127.0.0.1:8000->8000/tcp
+db        Up 11 seconds (healthy)   5432/tcp
+CHECK PASS: db healthy
+CHECK PASS: backend healthy (HEALTHCHECK = /health/ready)
+--- backend startup output (migrate + provision):
+migrations applied: ['0001_initial_schema', '0002_synthetic_seed', '0003_priority_and_ticket_confirmation', '0004_one_pending_action_per_group']; schema version: 0004_one_pending_action_per_group
+synthetic credentials provisioned for: CUSTOMER_A, CUSTOMER_B
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+
+===== 5. SCHEMA_MIGRATIONS vs CHECKED-OUT FILES =====
+--- database:
+0001_initial_schema 7d6223e67e14314ed18f90acb331e38187af75f0991dfd46592c88d475f60480
+0002_synthetic_seed 8c062cedd865ff1f2dbf38b8aeb6e679c470567bc60eebcfa09fdf5e8bc28e72
+0003_priority_and_ticket_confirmation a7f58cec1f47abe42642c8cb8764b33dfe24cfe73378109271fd67c62464666a
+0004_one_pending_action_per_group 01714a8c50475b81004ba8c5fc0ec160b527b45a07a1f489bbfd2832ee4b068c
+CHECK PASS: schema_migrations == 0001..0004 with identical checksums
+CHECK PASS: exactly 4 migrations applied
+
+===== 6. PORTS AND NETWORK =====
+$ docker port ba5196266558fbe55c0b961df435eb4fb770cca43e1f0942b535df27e80e5651
+(empty above = db has no published port)
+$ docker port 93521f574fd0c97bc44b7c286df122aafe39ba2d2f02115429d46fa9db78540c
+8000/tcp -> 127.0.0.1:8000
+$ ss -tlnH
+LISTEN 0      4096       127.0.0.1:8000 0.0.0.0:*
+LISTEN 0      4096         0.0.0.0:9922 0.0.0.0:*
+LISTEN 0      4096      127.0.0.54:53   0.0.0.0:*
+LISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*
+LISTEN 0      4096            [::]:9922    [::]:*
+CHECK PASS: no host listener on 5432
+CHECK PASS: backend bound only to 127.0.0.1:8000
+CHECK PASS: public listeners only :9922
+$ docker compose exec -T backend python -c import socket; s=socket.create_connection(('db',5432),3); print('backend -> db:5432 over Docker DNS OK'); s.close()
+backend -> db:5432 over Docker DNS OK
+
+===== 7. API CHECKS (phase 1) — host python3 stdlib, 127.0.0.1 only =====
+
+--- 7.1 health / readiness
+  GET /health: HTTP 200 {"status": "ok"}
+CHECK PASS: /health 200 {status: ok}
+  GET /health/ready: HTTP 200 {"status": "ready", "schema_version": "0004_one_pending_action_per_group"}
+CHECK PASS: /health/ready 200 at schema 0004
+
+--- 7.2 authorization matrix
+  CUSTOMER_A GET /me: HTTP 200 {"customer_id": "CUSTOMER_A"}
+CHECK PASS: CUSTOMER_A /me -> CUSTOMER_A
+  CUSTOMER_B GET /me: HTTP 200 {"customer_id": "CUSTOMER_B"}
+CHECK PASS: CUSTOMER_B /me -> CUSTOMER_B
+  CUSTOMER_A GET ticket a0000000: HTTP 200 {"customer_id": "CUSTOMER_A", "id": "a0000000-0000-4000-8000-000000000001", "status": "open", "priority": "normal"}
+CHECK PASS: CUSTOMER_A reads a0000000 -> 200
+  CUSTOMER_B GET ticket b0000000: HTTP 200 {"customer_id": "CUSTOMER_B", "id": "b0000000-0000-4000-8000-000000000001", "status": "in_progress", "priority": "normal"}
+CHECK PASS: CUSTOMER_B reads b0000000 -> 200
+  CUSTOMER_A GET ticket b0000000: HTTP 404 {"detail": "Ticket not found"}
+CHECK PASS: CUSTOMER_A reads b0000000 -> 404
+CHECK PASS: 404 body generic, no leak
+  CUSTOMER_B GET ticket a0000000: HTTP 404 {"detail": "Ticket not found"}
+CHECK PASS: CUSTOMER_B reads a0000000 -> 404
+CHECK PASS: 404 body generic, no leak
+  invalid token GET /me: HTTP 401 {"detail": "Not authenticated"}
+CHECK PASS: invalid token -> 401
+  no token GET ticket A: HTTP 401 {"detail": "Not authenticated"}
+CHECK PASS: missing token -> 401
+
+--- 7.3 prepare / confirm (CUSTOMER_A, priority normal)
+  prepare: HTTP 201 {"pending_action_id": "f19df2bc-cc05-415d-a39e-2e878859fe9c", "status": "pending"}
+CHECK PASS: prepare 201 with pending action, summary and hash
+CHECK PASS: prepare creates NO ticket  [2 -> 2]
+  confirm K1: HTTP 201 Idempotency-Outcome=created {"customer_id": "CUSTOMER_A", "id": "ed41ddeb-2a00-430e-9e9f-84bb09929a7d", "status": "open", "priority": "normal"}
+CHECK PASS: confirm 201 created with real ticket id
+CHECK PASS: exactly one ticket created
+  DB row: CUSTOMER_A|f19df2bc-cc05-415d-a39e-2e878859fe9c|normal
+CHECK PASS: ticket persisted, owner CUSTOMER_A, linked to action
+  A GET new ticket: HTTP 200 {"customer_id": "CUSTOMER_A", "id": "ed41ddeb-2a00-430e-9e9f-84bb09929a7d", "status": "open", "priority": "normal"}
+CHECK PASS: owner reads new ticket
+  B GET new ticket: HTTP 404 {"detail": "Ticket not found"}
+CHECK PASS: other customer gets 404
+
+--- 7.4 idempotency
+  confirm K1 again: HTTP 201 Idempotency-Outcome=replay {"customer_id": "CUSTOMER_A", "id": "ed41ddeb-2a00-430e-9e9f-84bb09929a7d", "status": "open", "priority": "normal"}
+CHECK PASS: A: same key + same request -> same ticket, replay
+CHECK PASS: A: ticket count unchanged
+  prepare other action: HTTP 201 {"pending_action_id": "9be6d2f7-4ff6-4ff5-8e5c-ee8cdde4b9ae", "status": "pending"}
+  confirm OTHER action with K1: HTTP 409 Idempotency-Outcome=conflict {"code": "idempotency_key_conflict", "detail": "Idempotency-Key was already used with a different request"}
+CHECK PASS: B: same key + different action -> 409 conflict
+  confirm same action, different hash, K1: HTTP 409 Idempotency-Outcome=conflict {"code": "idempotency_key_conflict", "detail": "Idempotency-Key was already used with a different request"}
+CHECK PASS: B2: same key + different hash -> 409 conflict
+  confirm consumed action with new key K2: HTTP 409 {"code": "confirmation_already_used", "detail": "This confirmation was already used; no new ticket was created", "ticket_id": "ed41ddeb-2a00-430e-9e9f-84bb09929a7d"}
+CHECK PASS: C: consumed + new key -> 409 confirmation_already_used + same ticket_id
+  confirm without Idempotency-Key: HTTP 400 {"detail": "A valid Idempotency-Key header is required (1-128 chars: A-Z a-z 0-9 . _ : -)"}
+CHECK PASS: D: missing key -> 400
+  confirm with invalid key: HTTP 400 {"detail": "A valid Idempotency-Key header is required (1-128 chars: A-Z a-z 0-9 . _ : -)"}
+CHECK PASS: D: invalid key -> 400
+CHECK PASS: no ticket from B/C/D
+CHECK PASS: other action still pending
+
+--- 7.5 confirmation invalidation (official flow: whole office down -> critical)
+  prepare A (priority normal): HTTP 201 {"pending_action_id": "1db81e4e-d506-4ad5-bcec-2bcb9a2ba039", "status": "pending"}
+  prepare B (priority critical): HTTP 201 {"pending_action_id": "ea20b929-65cb-49ea-b3f4-7824485cbf09", "status": "pending"}
+CHECK PASS: A superseded after changed re-prepare  [superseded]
+  confirm superseded A: HTTP 409 {"code": "confirmation_invalid", "detail": "Confirmation is no longer valid; prepare the ticket again"}
+CHECK PASS: confirm A -> 409 confirmation_invalid
+  confirm B: HTTP 201 Idempotency-Outcome=created {"customer_id": "CUSTOMER_A", "id": "923b29a6-cee7-4d16-a0f2-dcf44def35ba", "status": "open", "priority": "critical"}
+CHECK PASS: confirm B -> 201 with priority critical
+CHECK PASS: exactly one new ticket
+
+--- 7.6 concurrent prepare (same customer + same X-Conversation-ID), 3 rounds x 8 threads
+  round 0: all 8 prepares HTTP 201: True; DB statuses: pending=1,superseded=7
+CHECK PASS: round 0: exactly 1 pending, 7 superseded  [pending=1,superseded=7]
+CHECK PASS: round 0: only the pending action confirms (201), the 7 others 409  [[(False, 409), (False, 409), (False, 409), (False, 409), (False, 409), (False, 409), (False, 409), (True, 201)]]
+CHECK PASS: round 0: exactly one ticket
+  round 1: all 8 prepares HTTP 201: True; DB statuses: pending=1,superseded=7
+CHECK PASS: round 1: exactly 1 pending, 7 superseded  [pending=1,superseded=7]
+CHECK PASS: round 1: only the pending action confirms (201), the 7 others 409  [[(False, 409), (False, 409), (False, 409), (False, 409), (False, 409), (False, 409), (False, 409), (True, 201)]]
+CHECK PASS: round 1: exactly one ticket
+  round 2: all 8 prepares HTTP 201: True; DB statuses: pending=1,superseded=7
+CHECK PASS: round 2: exactly 1 pending, 7 superseded  [pending=1,superseded=7]
+CHECK PASS: round 2: only the pending action confirms (201), the 7 others 409  [[(False, 409), (False, 409), (False, 409), (False, 409), (False, 409), (False, 409), (False, 409), (True, 201)]]
+CHECK PASS: round 2: exactly one ticket
+
+--- 7.7 cross-customer confirmation
+  B prepare: HTTP 201 {"pending_action_id": "875cd5fe-49f8-48eb-9f00-438dad2726bd", "status": "pending"}
+  A confirms B's action: HTTP 404 {"detail": "Pending action not found"}
+CHECK PASS: A on B's action == nonexistent (404, identical body)
+CHECK PASS: no leak of B or action data
+CHECK PASS: no ticket created
+  B confirms own action: HTTP 201 Idempotency-Outcome=created {"customer_id": "CUSTOMER_B", "id": "53f2edbe-287e-456b-bf7f-194ff5a445b0", "status": "open", "priority": "normal"}
+CHECK PASS: B confirms own action -> 201 owner CUSTOMER_B
+
+--- 7.8 priority policy
+  prepare priority=normal: HTTP 201 {"pending_action_id": "6e3b62fd-272b-4f4f-9696-eec653e18d77", "status": "pending"}
+CHECK PASS: priority normal accepted
+  prepare priority=critical: HTTP 201 {"pending_action_id": "f1725733-f6b6-429c-8c75-9532eb89a5f4", "status": "pending"}
+CHECK PASS: priority critical accepted
+  prepare priority=low: HTTP 422 {"detail": [{"type": "literal_error", "loc": ["body", "priority"], "msg": "Input should be 'normal' or 'critical'", "input": "low", "ctx": {"expected": "'normal' or 'critical'"}}]}
+CHECK PASS: priority low rejected (422)
+  prepare priority=medium: HTTP 422 {"detail": [{"type": "literal_error", "loc": ["body", "priority"], "msg": "Input should be 'normal' or 'critical'", "input": "medium", "ctx": {"expected": "'normal' or 'critical'"}}]}
+CHECK PASS: priority medium rejected (422)
+  prepare priority=high: HTTP 422 {"detail": [{"type": "literal_error", "loc": ["body", "priority"], "msg": "Input should be 'normal' or 'critical'", "input": "high", "ctx": {"expected": "'normal' or 'critical'"}}]}
+CHECK PASS: priority high rejected (422)
+  prepare priority=urgent: HTTP 422 {"detail": [{"type": "literal_error", "loc": ["body", "priority"], "msg": "Input should be 'normal' or 'critical'", "input": "urgent", "ctx": {"expected": "'normal' or 'critical'"}}]}
+CHECK PASS: priority urgent rejected (422)
+CHECK PASS: no action created for rejected priorities
+  DB-level UPDATE priority='high': ERROR:  new row for relation "tickets" violates check constraint "tickets_priority_check"
+CHECK PASS: DB CHECK rejects legacy priority
+
+--- 7.9 persistence fixture: one confirmed ticket
+  persistence ticket: HTTP 201 Idempotency-Outcome=created {"customer_id": "CUSTOMER_A", "id": "4bfbfe34-7693-495e-be31-d27b186aad76", "status": "open", "priority": "normal"}
+CHECK PASS: persistence ticket created
+
+PHASE phase1: ALL CHECKS PASS
+
+===== 8. PERSISTENCE: recreate containers, keep volume =====
+$ docker compose down
+ Container nexo-backend-1 Stopping 
+ Container nexo-backend-1 Stopped 
+ Container nexo-backend-1 Removing 
+ Container nexo-backend-1 Removed 
+ Container nexo-db-1 Stopping 
+ Container nexo-db-1 Stopped 
+ Container nexo-db-1 Removing 
+ Container nexo-db-1 Removed 
+ Network nexo_internal Removing 
+ Network nexo_internal Removed 
+CHECK PASS: no nexo containers after down
+CHECK PASS: volume nexo_db_data kept
+$ docker compose up -d --wait --wait-timeout 180
+ Network nexo_internal Creating 
+ Network nexo_internal Creating 
+ Network nexo_internal Created 
+ Network nexo_internal Created 
+ Container nexo-db-1 Creating 
+ Container nexo-db-1 Created 
+ Container nexo-backend-1 Creating 
+ Container nexo-backend-1 Created 
+ Container nexo-db-1 Starting 
+ Container nexo-db-1 Started 
+ Container nexo-db-1 Waiting 
+ Container nexo-db-1 Healthy 
+ Container nexo-backend-1 Starting 
+ Container nexo-backend-1 Started 
+ Container nexo-db-1 Waiting 
+ Container nexo-backend-1 Waiting 
+ Container nexo-db-1 Healthy 
+ Container nexo-backend-1 Healthy 
+CHECK PASS: db recreated (new container id)
+CHECK PASS: same volume instance
+--- backend startup output after recreate:
+migrations applied: none (up to date); schema version: 0004_one_pending_action_per_group
+synthetic credentials provisioned for: CUSTOMER_A, CUSTOMER_B
+
+===== 9. API CHECKS (phase 2: after recreate) =====
+
+--- 9.1 after container recreation
+  GET /health/ready: HTTP 200 {"status": "ready", "schema_version": "0004_one_pending_action_per_group"}
+CHECK PASS: /health/ready 200 after recreate
+  A GET persisted ticket: HTTP 200 {"customer_id": "CUSTOMER_A", "id": "4bfbfe34-7693-495e-be31-d27b186aad76", "status": "open", "priority": "normal"}
+CHECK PASS: same ticket queryable by owner after recreate
+CHECK PASS: still 404 for other customer
+  replay persisted key: HTTP 201 Idempotency-Outcome=replay {"customer_id": "CUSTOMER_A", "id": "4bfbfe34-7693-495e-be31-d27b186aad76", "status": "open", "priority": "normal"}
+CHECK PASS: idempotency record survived restart (replay, same ticket)
+
+PHASE phase2: ALL CHECKS PASS
+
+===== 10. TRACEABILITY / LOG HYGIENE =====
+
+--- 10. traceability (backend audit lines for this run)
+CHECK FAIL: audit has created/replay/conflict outcomes  [{'replay'}]
+CHECK FAIL: every audit line has request_id + status + duration_ms  [4 lines]
+CHECK PASS: ticket_id only on successful confirm/replay or conflict lookups
+CHECK PASS: no tokens / DB password in backend logs
+CHECK PASS: no 'Bearer' / authorization header in logs
+CHECK PASS: no ticket description text in logs
+
+PHASE logs: FAILURES: audit has created/replay/conflict outcomes; every audit line has request_id + status + duration_ms
+
+===== 11. RESULT =====
+APP-02V1 RUNTIME: FAILURES (see CHECK FAIL)
+backend-1  | migrations applied: none (up to date); schema version: 0004_one_pending_action_per_group
+backend-1  | synthetic credentials provisioned for: CUSTOMER_A, CUSTOMER_B
+backend-1  | INFO:     Started server process [1]
+backend-1  | INFO:     Waiting for application startup.
+backend-1  | INFO:     Application startup complete.
+backend-1  | INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+backend-1  | {"ts": "2026-10-06T15:59:23.106+00:00", "request_id": "a009ba64-4902-426f-963d-fc1264d8ea73", "conversation_id": null, "method": "GET", "route": "/health/ready", "status": 200, "duration_ms": 19.6, "action": "health.ready", "result": "ready"}
+backend-1  | INFO:     127.0.0.1:50164 - "GET /health/ready HTTP/1.1" 200 OK
+backend-1  | {"ts": "2026-10-06T15:59:23.540+00:00", "request_id": "v1-1559064529-b99b2a04", "conversation_id": null, "method": "GET", "route": "/health/ready", "status": 200, "duration_ms": 9.3, "action": "health.ready", "result": "ready"}
+backend-1  | INFO:     172.18.0.1:47862 - "GET /health/ready HTTP/1.1" 200 OK
+backend-1  | {"ts": "2026-10-06T15:59:23.562+00:00", "request_id": "v1-1559064529-af38d044", "conversation_id": null, "method": "GET", "route": "/tickets/{ticket_id}", "status": 200, "duration_ms": 20.1, "customer_id": "CUSTOMER_A", "action": "ticket.read", "ticket_id": "4bfbfe34-7693-495e-be31-d27b186aad76", "result": "allowed"}
+backend-1  | INFO:     172.18.0.1:47864 - "GET /tickets/4bfbfe34-7693-495e-be31-d27b186aad76 HTTP/1.1" 200 OK
+backend-1  | {"ts": "2026-10-06T15:59:23.583+00:00", "request_id": "v1-1559064529-ec1fc3fe", "conversation_id": null, "method": "GET", "route": "/tickets/{ticket_id}", "status": 404, "duration_ms": 18.8, "customer_id": "CUSTOMER_B", "action": "ticket.read", "ticket_id": "4bfbfe34-7693-495e-be31-d27b186aad76", "result": "denied_not_owner"}
+backend-1  | INFO:     172.18.0.1:47874 - "GET /tickets/4bfbfe34-7693-495e-be31-d27b186aad76 HTTP/1.1" 404 Not Found
+backend-1  | {"ts": "2026-10-06T15:59:23.603+00:00", "request_id": "v1-1559064529-bce77e10", "conversation_id": null, "method": "POST", "route": "/tickets/confirm", "status": 201, "duration_ms": 18.3, "customer_id": "CUSTOMER_A", "action": "ticket_confirm", "pending_action_id": "ce976926-6ea3-4666-9f67-f3aec2e7129f", "ticket_id": "4bfbfe34-7693-495e-be31-d27b186aad76", "confirmation_result": "replayed", "idempotency": "replay", "result": "success"}
+backend-1  | INFO:     172.18.0.1:47876 - "POST /tickets/confirm HTTP/1.1" 201 Created
+db-1       | 
+db-1       | PostgreSQL Database directory appears to contain a database; Skipping initialization
+db-1       | 
+db-1       | 2026-10-06 15:59:12.243 UTC [1] LOG:  starting PostgreSQL 17.11 (Debian 17.11-1.pgdg12+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit
+db-1       | 2026-10-06 15:59:12.243 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+db-1       | 2026-10-06 15:59:12.243 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+db-1       | 2026-10-06 15:59:12.250 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+db-1       | 2026-10-06 15:59:12.255 UTC [28] LOG:  database system was shut down at 2026-10-06 15:59:11 UTC
+db-1       | 2026-10-06 15:59:12.260 UTC [1] LOG:  database system is ready to accept connections
+tickets=9 pending_actions=3 idempotency_keys=7
+
+===== 12. CLEANUP =====
+$ docker compose down -v
+ Container nexo-backend-1 Stopping 
+ Container nexo-backend-1 Stopped 
+ Container nexo-backend-1 Removing 
+ Container nexo-backend-1 Removed 
+ Container nexo-db-1 Stopping 
+ Container nexo-db-1 Stopped 
+ Container nexo-db-1 Removing 
+ Container nexo-db-1 Removed 
+ Volume nexo_db_data Removing 
+ Network nexo_internal Removing 
+ Volume nexo_db_data Removed 
+ Network nexo_internal Removed 
+$ docker image rm nexo-backend:0.1.0 pgvector/pgvector:0.8.7-pg17-bookworm
+Untagged: nexo-backend:0.1.0
+Deleted: sha256:d0680020f28a95cc0a650122f263a7de578a01893811166955680af460152ec0
+Untagged: pgvector/pgvector:0.8.7-pg17-bookworm
+Deleted: sha256:ac08538c6f8b9904c33c8224c5e5706dbe760aca29db1d096972b4052c22a75d
+Total:	249MB
+
+===== 13. SECRET-IN-LOG CHECK (values never printed) =====
+occurrences of POSTGRES_PASSWORD value in run log: 0
+occurrences of AUTH_TOKEN_CUSTOMER_A value in run log: 0
+occurrences of AUTH_TOKEN_CUSTOMER_B value in run log: 0
+
+===== 14. FINAL STATE =====
+$ docker ps -a
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+$ docker images
+IMAGE   ID             DISK USAGE   CONTENT SIZE   EXTRA
+$ docker volume ls
+DRIVER    VOLUME NAME
+$ docker network ls
+NETWORK ID     NAME      DRIVER    SCOPE
+6381b14192e7   bridge    bridge    local
+5885cec536ca   host      host      local
+447cca8214c8   none      null      local
+$ docker system df
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          0         0         0B        0B
+Containers      0         0         0B        0B
+Local Volumes   0         0         0B        0B
+Build Cache     0         0         0B        0B
+$ ss -tlnH
+LISTEN 0      4096         0.0.0.0:9922 0.0.0.0:*
+LISTEN 0      4096      127.0.0.54:53   0.0.0.0:*
+LISTEN 0      4096   127.0.0.53%lo:53   0.0.0.0:*
+LISTEN 0      4096            [::]:9922    [::]:*
+$ test ! -e /home/user/nexo-app02v1
+temporary directory removed (checkout, .env, persist.json, logs)

@@ -1,0 +1,39 @@
+# AGENT-01BF1 mutation checks F1-F7: foreground, sequential, byte-exact backup/restore, memory logged (local: REAL PostgreSQL 17.11 + pgvector 0.8.7; TEST-ONLY scripted model; FakeN8n = TEST stand-in, NOT n8n)
+
+Suites per mutation: tests/test_chat_actions_f1.py + tests/test_chat_actions.py + tests/test_agent.py (136 tests).
+F6 note: the first F6 mutant ('%s IS NOT NULL' with an untyped parameter) CRASHED the query instead of removing the
+predicate (25 unrelated failures) and was discarded; it ran twice (the second time by mistake, because a table edit
+failed). The semantic mutant 'AND (conversation_id = %s OR TRUE)' is caught by exactly the defense-in-depth test.
+
+F1 ignore the expected version: confirm the current pointer whatever token was presented: 5 failed, 131 passed, 1 warning in 87.70s (0:01:27)
+   caught by: ['test_forged_or_foreign_tokens_execute_nothing', 'test_lost_reprepare_response_cannot_execute_the_unseen_version', 'test_reprepare_during_confirm_never_executes_the_newer_version']
+   restored byte-exact: True | pytest rc 1 | 89s | memory before: load 80% avail 1.2/5.8 GiB | after: load 81% avail 1.1/5.8 GiB
+F2 trust the pre-lock admission state (no under-lock re-read): 2 failed, 134 passed, 1 warning in 86.39s (0:01:26)
+   caught by: ['test_reprepare_during_confirm_never_executes_the_newer_version']
+   restored byte-exact: True | pytest rc 1 | 88s | memory before: load 81% avail 1.1/5.8 GiB | after: load 84% avail 0.9/5.8 GiB
+F3 treat a 0-row cancel as success: 5 failed, 131 passed, 1 warning in 89.24s (0:01:29)
+   caught by: ['test_api_confirm_wins_against_chat_cancel_ticket', 'test_cancel_of_a_no_longer_pending_action_is_truthful', 'test_lead_n8n_down_is_honest_and_resumes_exactly_once', 'test_workflow_completion_wins_against_chat_cancel_lead']
+   restored byte-exact: True | pytest rc 1 | 91s | memory before: load 84% avail 0.9/5.8 GiB | after: load 83% avail 1.0/5.8 GiB
+F4 mark the conversation cancelled although the action was already consumed: 2 failed, 134 passed, 1 warning in 90.26s (0:01:30)
+   caught by: ['test_api_confirm_wins_against_chat_cancel_ticket', 'test_workflow_completion_wins_against_chat_cancel_lead']
+   restored byte-exact: True | pytest rc 1 | 92s | memory before: load 84% avail 0.9/5.8 GiB | after: load 85% avail 0.8/5.8 GiB
+F5 remove the stale-proposal (revision) check: 2 failed, 134 passed, 1 warning in 88.15s (0:01:28)
+   caught by: ['test_race_cancel_during_interpretation_stale_proposal_not_published', 'test_race_confirm_during_interpretation_stale_proposal_not_published']
+   restored byte-exact: True | pytest rc 1 | 90s | memory before: load 85% avail 0.8/5.8 GiB | after: load 89% avail 0.6/5.8 GiB
+F6 dereference the pointer without the conversation predicate (defense in depth): 25 failed, 111 passed, 1 warning in 80.49s (0:01:20)
+   caught by: ['test_api_confirm_wins_against_chat_cancel_ticket', 'test_audit_has_action_facts_but_no_keys_contacts_or_free_text', 'test_cancel_of_a_no_longer_pending_action_is_truthful', 'test_changed_data_reprepares_and_old_version_cannot_execute', 'test_concurrent_lead_confirmations_create_exactly_one', 'test_concurrent_ticket_confirmations_create_exactly_one', 'test_expired_action_is_not_confirmed', 'test_lead_journey_collect_prepare_confirm_through_workflow_replay', 'test_lead_n8n_down_is_honest_and_resumes_exactly_once', 'test_lead_response_lost_after_workflow_commit_recovers', 'test_new_tickets_get_a_resolvable_reference', 'test_normal_ticket_is_not_escalated', 'test_other_customer_and_other_conversation_cannot_reach_a_pending_action', 'test_pointer_to_another_conversations_action_fails_closed', 'test_race_chat_confirm_vs_chat_cancel_one_wins_loser_sees_truth', 'test_race_confirm_during_interpretation_stale_proposal_not_published', 'test_reprepare_during_confirm_never_executes_the_newer_version', 'test_revision_increments_on_every_state_change', 'test_ticket_db_failure_after_commit_then_retry_is_exactly_once', 'test_ticket_journey_collect_prepare_confirm_critical_handoff_replay', 'test_turns_of_one_conversation_are_serialized_by_the_conversation_lock', 'test_two_pending_actions_in_one_conversation_execute_nothing', 'test_workflow_completion_wins_against_chat_cancel_lead']
+   restored byte-exact: True | pytest rc 1 | 82s | memory before: load 89% avail 0.6/5.8 GiB | after: load 87% avail 0.7/5.8 GiB
+F7 a missing token is accepted as approval of the current version: 2 failed, 134 passed, 1 warning in 90.42s (0:01:30)
+   caught by: ['test_lost_reprepare_response_cannot_execute_the_unseen_version']
+   restored byte-exact: True | pytest rc 1 | 92s | memory before: load 87% avail 0.7/5.8 GiB | after: load 87% avail 0.8/5.8 GiB
+--- F6 (first attempt above was a crashing mutant: '%s IS NOT NULL' with an untyped parameter) re-run:
+F6 dereference the pointer without the conversation predicate (defense in depth): 25 failed, 111 passed, 1 warning in 81.07s (0:01:21)
+   caught by: ['test_api_confirm_wins_against_chat_cancel_ticket', 'test_audit_has_action_facts_but_no_keys_contacts_or_free_text', 'test_cancel_of_a_no_longer_pending_action_is_truthful', 'test_changed_data_reprepares_and_old_version_cannot_execute', 'test_concurrent_lead_confirmations_create_exactly_one', 'test_concurrent_ticket_confirmations_create_exactly_one', 'test_expired_action_is_not_confirmed', 'test_lead_journey_collect_prepare_confirm_through_workflow_replay', 'test_lead_n8n_down_is_honest_and_resumes_exactly_once', 'test_lead_response_lost_after_workflow_commit_recovers', 'test_new_tickets_get_a_resolvable_reference', 'test_normal_ticket_is_not_escalated', 'test_other_customer_and_other_conversation_cannot_reach_a_pending_action', 'test_pointer_to_another_conversations_action_fails_closed', 'test_race_chat_confirm_vs_chat_cancel_one_wins_loser_sees_truth', 'test_race_confirm_during_interpretation_stale_proposal_not_published', 'test_reprepare_during_confirm_never_executes_the_newer_version', 'test_revision_increments_on_every_state_change', 'test_ticket_db_failure_after_commit_then_retry_is_exactly_once', 'test_ticket_journey_collect_prepare_confirm_critical_handoff_replay', 'test_turns_of_one_conversation_are_serialized_by_the_conversation_lock', 'test_two_pending_actions_in_one_conversation_execute_nothing', 'test_workflow_completion_wins_against_chat_cancel_lead']
+   restored byte-exact: True | pytest rc 1 | 82s | memory before: load 87% avail 0.7/5.8 GiB | after: load 87% avail 0.7/5.8 GiB
+--- F6 re-run with semantic mutant (previous two F6 lines = crashing mutant, discarded):
+F6 dereference the pointer without the conversation predicate (defense in depth): 1 failed, 135 passed, 1 warning in 89.08s (0:01:29)
+   caught by: ['test_pointer_to_another_conversations_action_fails_closed']
+   restored byte-exact: True | pytest rc 1 | 90s | memory before: load 87% avail 0.7/5.8 GiB | after: load 86% avail 0.8/5.8 GiB
+
+RESULT: F1-F7 all caught. After every batch: all sites original, no mutant residue (stale __pycache__ removed),
+0 PostgreSQL processes, 0 temp clusters.

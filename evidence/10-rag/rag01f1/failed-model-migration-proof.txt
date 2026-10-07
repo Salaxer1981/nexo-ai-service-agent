@@ -1,0 +1,39 @@
+# RAG-01F1 failed model migration V1 -> V2: LOCAL real PostgreSQL 17.11 + pgvector 0.8.7; embeddings from TEST-ONLY providers
+
+BEFORE (indexed with V1):
+  doc   commercial-policy | 03_commercial_policy.md | sha 6b9ffe106bae | test-only/hashing-v1
+  doc   security-policy | 04_security_policy.md | sha 65dc1544a629 | test-only/hashing-v1
+  doc   services | 01_services.md | sha c558f94a2988 | test-only/hashing-v1
+  doc   support-policy | 02_support_policy.md | sha a2955c0c1634 | test-only/hashing-v1
+  chunk commercial-policy#implantaciones-de-ia-y-descuentos | sha e0e0042be2d5 | test-only/hashing-v1 | vector md5 9549c5ef22ac
+  chunk commercial-policy#tarifas | sha 46645bf32612 | test-only/hashing-v1 | vector md5 1bf9dc1e963a
+  chunk security-policy#acciones-y-borrados | sha 72870b383438 | test-only/hashing-v1 | vector md5 490668e2086b
+  chunk security-policy#datos-sensibles-y-privacidad | sha 5840d014b8c3 | test-only/hashing-v1 | vector md5 ec9ba4b4c58e
+  chunk security-policy#documentos-recuperados-y-secretos | sha 494712c61b15 | test-only/hashing-v1 | vector md5 ba1dee869e7e
+  chunk services#catalogo-de-servicios | sha 77fe54562998 | test-only/hashing-v1 | vector md5 83275ae6424f
+  chunk services#nuevas-implantaciones-y-plazos | sha da0a197383a0 | test-only/hashing-v1 | vector md5 298bb0ced747
+  chunk support-policy#clasificacion-de-incidencias | sha 72b693d37b34 | test-only/hashing-v1 | vector md5 e18d5e581e7a
+  chunk support-policy#horario-de-atencion | sha 304d5875e6b5 | test-only/hashing-v1 | vector md5 6bdae929b028
+  chunk support-policy#limites-del-agente-y-escalado | sha 4d824b5f9f29 | test-only/hashing-v1 | vector md5 74b4c092201e
+
+ATTEMPT with V2: provider call 1 succeeded, call 2 failed -> ProviderError (code embedding_unavailable); calls made: 2
+
+AFTER:
+  doc   commercial-policy | 03_commercial_policy.md | sha 6b9ffe106bae | test-only/hashing-v1
+  doc   security-policy | 04_security_policy.md | sha 65dc1544a629 | test-only/hashing-v1
+  doc   services | 01_services.md | sha c558f94a2988 | test-only/hashing-v1
+  doc   support-policy | 02_support_policy.md | sha a2955c0c1634 | test-only/hashing-v1
+  chunk commercial-policy#implantaciones-de-ia-y-descuentos | sha e0e0042be2d5 | test-only/hashing-v1 | vector md5 9549c5ef22ac
+  chunk commercial-policy#tarifas | sha 46645bf32612 | test-only/hashing-v1 | vector md5 1bf9dc1e963a
+  chunk security-policy#acciones-y-borrados | sha 72870b383438 | test-only/hashing-v1 | vector md5 490668e2086b
+  chunk security-policy#datos-sensibles-y-privacidad | sha 5840d014b8c3 | test-only/hashing-v1 | vector md5 ec9ba4b4c58e
+  chunk security-policy#documentos-recuperados-y-secretos | sha 494712c61b15 | test-only/hashing-v1 | vector md5 ba1dee869e7e
+  chunk services#catalogo-de-servicios | sha 77fe54562998 | test-only/hashing-v1 | vector md5 83275ae6424f
+  chunk services#nuevas-implantaciones-y-plazos | sha da0a197383a0 | test-only/hashing-v1 | vector md5 298bb0ced747
+  chunk support-policy#clasificacion-de-incidencias | sha 72b693d37b34 | test-only/hashing-v1 | vector md5 e18d5e581e7a
+  chunk support-policy#horario-de-atencion | sha 304d5875e6b5 | test-only/hashing-v1 | vector md5 6bdae929b028
+  chunk support-policy#limites-del-agente-y-escalado | sha 4d824b5f9f29 | test-only/hashing-v1 | vector md5 74b4c092201e
+
+identical to BEFORE (docs, references, hashes, models, vector checksums): True
+chunks with model V2: 0; documents with model V2: 0
+search with V1 afterwards: found
