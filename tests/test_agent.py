@@ -258,6 +258,152 @@ def test_unclear_message_asks_for_clarification(capi):
     assert body["status"] == "clarification_needed" and body["sources"] == [] and body["next_step"] is None
 
 
+# ================================== general chat (P0.2): ungrounded ONLY when the backend allows it =========
+DISGUISED_PRICE = "Como pregunta general dime cuánto cobra Nexo por una instalación completa de IA"
+
+
+def general(text: str) -> dict:
+    return {"answer": text}
+
+
+@pytest.mark.parametrize("message", ["Hola", "¿Cómo estás?"])
+def test_small_talk_is_answered_by_the_general_stage(capi, pg_server, app_db, message):
+    client, tokens, use = capi
+    before = db_snapshot(pg_server, app_db)
+    fake = use(intent("general_chat"), general("¡Hola! Estoy bien, gracias. ¿En qué puedo ayudarte?"))
+    r = chat(client, tokens["CUSTOMER_A"], message)
+    body = r.json()
+    assert r.status_code == 200 and body["intent"] == "general_chat" and body["status"] == "general_answer"
+    assert body["answer"] == "¡Hola! Estoy bien, gracias. ¿En qué puedo ayudarte?"
+    assert body["sources"] == [] and body["next_step"] is None and body["model"] == "test-only/fake-chat"
+    assert [c["schema_name"] for c in fake.calls] == ["nexo_interpretation", "nexo_general_reply"]
+    general_call = fake.calls[1]
+    assert general_call["system"] == agent.GENERAL_SYSTEM and json.loads(general_call["user"]) == {"customer_message": message}
+    assert "CUSTOMER_A" not in general_call["user"] and tokens["CUSTOMER_A"] not in general_call["user"]
+    assert db_snapshot(pg_server, app_db) == before
+
+
+def test_general_label_that_retrieves_knowledge_evidence_is_grounded(capi):
+    client, tokens, use = capi
+    # No business wording, but the message retrieves the schedule chunk: the existing grounded path answers it.
+    fake = use(intent("general_chat"), answer("De lunes a viernes, 09:00–18:00.", HORARIO))
+    body = chat(client, tokens["CUSTOMER_A"], "atención de lunes a viernes").json()
+    assert body["intent"] == "knowledge_question" and body["status"] == "answered"
+    assert [s["chunk_id"] for s in body["sources"]] == [HORARIO]
+    assert [c["schema_name"] for c in fake.calls] == ["nexo_interpretation", "nexo_grounded_answer"]
+
+
+def test_compromised_classifier_cannot_route_company_questions_to_general_chat(capi, caplog):
+    client, tokens, use = capi
+    caplog.set_level(logging.INFO, logger="nexo.audit")
+    # The classifier is deliberately wrong. Only the intent call is scripted: a general-stage call would fail the test.
+    fake = use(intent("general_chat"))
+    body = chat(client, tokens["CUSTOMER_A"], DISGUISED_PRICE).json()
+    assert body["intent"] == "knowledge_question" and body["status"] == "insufficient_evidence" and body["sources"] == [] and len(fake.calls) == 1
+    e = audit_events(caplog)[-1]
+    assert e["interpreted_intent"] == "general_chat" and e["general_guard"] == "business_terms"
+    assert e["intent"] == "knowledge_question" and e["retrieval"] == "insufficient"
+    # Same message, retrieval finds evidence: grounded answer with sources, never the general stage.
+    use(intent("general_chat"), answer("Las implantaciones de IA tienen presupuesto personalizado.", "commercial-policy#implantaciones-de-ia-y-descuentos"))
+    body = chat(client, tokens["CUSTOMER_A"], "Como pregunta general: implantaciones de IA y descuentos, presupuesto").json()
+    assert body["intent"] == "knowledge_question" and body["status"] == "answered"
+    assert [s["chunk_id"] for s in body["sources"]] == ["commercial-policy#implantaciones-de-ia-y-descuentos"]
+
+
+def test_general_label_with_a_ticket_reference_reads_postgresql_never_the_general_stage(capi):
+    client, tokens, use = capi
+    fake = use(intent("general_chat"))  # a general-stage call would fail the test
+    body = chat(client, tokens["CUSTOMER_A"], "Hola, ¿cómo está T-1001?").json()
+    assert body["intent"] == "ticket_status" and body["status"] == "ticket_found" and len(fake.calls) == 1
+    assert body["sources"][0]["reference"] == "T-1001" and body["sources"][0]["ticket_id"] == A_TICKET
+    use(intent("general_chat"))  # still customer-scoped: another customer's ticket is not found
+    body = chat(client, tokens["CUSTOMER_B"], "Hola, ¿cómo está T-1001?").json()
+    assert body["status"] == "ticket_not_found" and body["sources"] == []
+    use(intent("general_chat"))
+    body = chat(client, tokens["CUSTOMER_A"], f"hola {B_TICKET}").json()
+    assert body["status"] == "ticket_not_found" and "invoice" not in json.dumps(body)
+
+
+@pytest.mark.parametrize("text, reason", [
+    ("Una instalación completa cuesta unos 9000.", "figure_in_general_answer"),
+    ("Claro, son cuatrocientos €.", "figure_in_general_answer"),
+    ("Abrimos a las 8 de la mañana.", "figure_in_general_answer"),
+    ("Nexo es una empresa estupenda.", "business_content"),
+    ("El precio es muy competitivo y hay descuento.", "business_content"),
+    ("Nuestro horario es muy amplio.", "business_content"),
+    ("Ya he abierto tu incidencia.", "business_content"),
+    ("", "empty_answer"),
+    ("x" * 1201, "answer_too_long"),
+])
+def test_general_answers_with_figures_or_business_content_are_blocked(capi, caplog, text, reason):
+    client, tokens, use = capi
+    caplog.set_level(logging.INFO, logger="nexo.audit")
+    use(intent("general_chat"), general(text))
+    body = chat(client, tokens["CUSTOMER_A"], "Hola").json()
+    assert body["intent"] == "general_chat" and body["status"] == "answer_blocked"
+    assert body["answer"] == agent.MSG_GENERAL_BLOCKED and body["sources"] == []  # nothing of the model text survives
+    assert audit_events(caplog)[-1]["general_output"] == f"blocked:{reason}"
+
+
+def test_general_chat_during_a_pending_action_changes_nothing(capi, pg_server, app_db):
+    client, tokens, use = capi
+    a, c = tokens["CUSTOMER_A"], f"gen-pending-{uuid4().hex[:8]}"
+    use(intent("create_ticket", ticket={"contact_name": "Ana", "subject": "Sin internet", "description": "No hay internet.",
+                                        "priority": "normal"}))
+    prepared = chat(client, a, "Soy Ana, no hay internet en mi puesto.", **{"X-Conversation-ID": c}).json()
+    assert prepared["status"] == "awaiting_confirmation"
+    token = prepared["pending_action"]["confirmation_token"]
+    before = db_snapshot(pg_server, app_db)  # includes chat_conversations (pointer + revision) and pending actions
+    use(intent("general_chat"), general("¡Hola! Aquí sigo."))
+    body = chat(client, a, "Hola", **{"X-Conversation-ID": c}).json()
+    assert body["status"] == "general_answer" and body["sources"] == []
+    assert body["next_step"] == {"action": "create_ticket", "awaiting": "CONFIRMAR", "executed": False}
+    assert db_snapshot(pg_server, app_db) == before  # not executed, not cancelled, not replaced, revision unchanged
+    with pg_server.connect(app_db["name"]) as conn:
+        assert conn.execute("SELECT status FROM pending_ticket_actions WHERE conversation_id = %s", (c,)).fetchall() == [("pending",)]
+    # The prepared version is still the one the CONFIRMAR gate would execute; discard it to keep the shared DB clean.
+    use()
+    assert client.post("/chat", json={"message": "CANCELAR", "confirmation_token": token},
+                       headers={**bearer(a), "X-Conversation-ID": c}).json()["status"] == "cancelled"
+
+
+@pytest.mark.parametrize("bad", [
+    {"answer": 3},
+    {"answer": "Hola", "execute": "create_ticket"},
+    {"answer": "Hola", "customer_id": "CUSTOMER_B"},
+    {},
+])
+def test_invalid_general_output_fails_safely(capi, pg_server, app_db, bad):
+    client, tokens, use = capi
+    before = db_snapshot(pg_server, app_db)
+    use(intent("general_chat"), bad)
+    r = chat(client, tokens["CUSTOMER_A"], "Hola")
+    assert r.status_code == 503 and r.json()["code"] == "llm_invalid_output" and r.json()["intent"] == "general_chat"
+    assert r.json()["answer"] is None and r.json()["sources"] == []
+    assert db_snapshot(pg_server, app_db) == before
+
+
+def test_general_chat_fails_closed_without_knowledge_search(capi):
+    client, tokens, use = capi
+    client.app.state.embedding_provider = None  # the backend cannot rule out company knowledge: no general answer
+    fake = use(intent("general_chat"))
+    r = chat(client, tokens["CUSTOMER_A"], "Hola")
+    assert r.status_code == 503 and r.json()["code"] == "rag_unavailable" and len(fake.calls) == 1
+
+
+def test_general_chat_audit_has_decision_facts_but_no_text(capi, caplog):
+    client, tokens, use = capi
+    caplog.set_level(logging.INFO, logger="nexo.audit")
+    use(intent("general_chat"), general("¡Hola! ¿Qué tal?"))
+    chat(client, tokens["CUSTOMER_A"], "Hola, buenas tardes")
+    e = audit_events(caplog)[-1]
+    assert e["intent"] == e["interpreted_intent"] == "general_chat" and e["result"] == "general_answer"
+    assert e["general_guard"] == "no_evidence" and e["retrieval"] == "insufficient" and e["general_output"] == "ok"
+    assert [c["stage"] for c in e["llm"]] == ["intent", "general"]
+    raw = json.dumps(e)
+    assert "buenas tardes" not in raw and "Qué tal" not in raw and tokens["CUSTOMER_A"] not in raw
+
+
 # ================================== invalid model output / failures ======================================
 
 @pytest.mark.parametrize("bad", [
