@@ -10,7 +10,15 @@ function knowledge(sources: Source[] | undefined): string {
   const list = sources ?? [];
   if (list.length === 0) return "Not used";
   return list
-    .map((s) => (s.kind === "knowledge_base" ? s.reference ?? s.title : s.kind === "business_api" ? "Business API (ticket)" : null))
+    .map((s) =>
+      s.kind === "knowledge_base"
+        ? s.reference ?? s.title
+        : s.kind === "business_api"
+          ? "Business API (ticket)"
+          : s.kind === "web" && s.domain
+            ? `Web · ${s.title ? `${s.title} — ` : ""}${s.domain}`
+            : null,
+    )
     .filter(Boolean)
     .join("; ");
 }

@@ -84,6 +84,28 @@ describe("UI-01 evaluation client", () => {
     }
   });
 
+  it("renders web sources as plain-text domains (never links) and shows them in technical details", async () => {
+    const url = "https://www.somosfuengirola.es/agenda/feria?ref=secret-query";
+    const { fetchImpl } = backend([{
+      status: 200,
+      body: { ...base, request_id: "req-web", intent: "web_search", status: "answered", model: "x-ai/grok-4.7",
+        answer: "Sí: la Feria del Rosario se celebra del 3 al 11 de octubre.",
+        sources: [{ kind: "web", title: "Feria del Rosario", domain: "www.somosfuengirola.es", url }] },
+    }]);
+    const user = userEvent.setup();
+    render(<App fetchImpl={fetchImpl} />);
+    await say(user, "¿Hay fiesta hoy en Fuengirola?");
+    expect(await screen.findByText("Sí: la Feria del Rosario se celebra del 3 al 11 de octubre.")).toBeTruthy();
+    expect(screen.getByText("Web · www.somosfuengirola.es")).toBeTruthy();
+    expect(document.querySelector("a[href]")).toBeNull(); // no clickable web URL anywhere
+    expect(document.body.innerHTML).not.toContain("secret-query");
+    await user.click(screen.getByRole("button", { name: "Technical details" }));
+    const t = within(screen.getByRole("complementary", { name: "Technical details" }));
+    expect(t.getByText("web_search")).toBeTruthy();
+    const row = (k: string) => t.getByText(k).closest(".kv-row")?.querySelector("dd")?.textContent;
+    expect(row("Knowledge source")).toBe("Web · Feria del Rosario — www.somosfuengirola.es");
+  });
+
   it("renders the draft card and keeps the confirmation token out of the DOM", async () => {
     const { fetchImpl } = backend([{ status: 200, body: draft(TOKEN_A) }]);
     const user = userEvent.setup();

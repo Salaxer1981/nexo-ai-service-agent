@@ -9,6 +9,7 @@ import { CheckCircleIcon } from "./Icons";
 function sourceLabel(s: Source): string | null {
   if (s.kind === "knowledge_base") return s.reference ?? s.title ?? null;
   if (s.kind === "business_api" && s.reference) return `${s.reference} · Ticket record`;
+  if (s.kind === "web" && s.domain) return `Web · ${s.domain}`; // plain text: web URLs are never rendered as links
   return null;
 }
 

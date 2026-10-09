@@ -13,6 +13,8 @@ DEFAULT_N8N_LEAD_WEBHOOK_URL = "http://n8n:5678/webhook/nexo-lead-create"
 DEFAULT_RAG_MIN_SCORE = 0.39
 # Chat model (AGENT-01A): verified in the OpenRouter catalogue and by a live structured-output probe.
 DEFAULT_CHAT_MODEL = "x-ai/grok-4.7"
+# Web search (P0.4): OFF by default. Exa is the only engine allowed (its citations carry verifiable content).
+WEB_SEARCH_ENGINES = ("exa",)
 
 
 class ConfigError(RuntimeError):
@@ -36,6 +38,11 @@ class Settings:
     rag_knowledge_dir: str = "/srv/knowledge"
     # Agent chat model (no fallback model: a different served model is an error).
     openrouter_chat_model: str = DEFAULT_CHAT_MODEL
+    # Web search through the OpenRouter web plugin; disabled unless WEB_SEARCH_ENABLED=true.
+    web_search_enabled: bool = False
+    web_search_engine: str = "exa"
+    web_search_max_results: int = 3
+    web_search_timeout_seconds: float = 45.0
 
 
 def load_settings(environ=None) -> Settings:
@@ -65,7 +72,52 @@ def load_settings(environ=None) -> Settings:
         rag_min_score=_score(env.get("RAG_MIN_SCORE")),
         rag_knowledge_dir=env.get("RAG_KNOWLEDGE_DIR") or "/srv/knowledge",
         openrouter_chat_model=(env.get("OPENROUTER_CHAT_MODEL") or "").strip() or DEFAULT_CHAT_MODEL,
+        web_search_enabled=_flag(env.get("WEB_SEARCH_ENABLED")),
+        web_search_engine=_engine(env.get("WEB_SEARCH_ENGINE")),
+        web_search_max_results=_bounded_int(env.get("WEB_SEARCH_MAX_RESULTS"), "WEB_SEARCH_MAX_RESULTS", 3, 1, 5),
+        web_search_timeout_seconds=_bounded_float(env.get("WEB_SEARCH_TIMEOUT_SECONDS"), "WEB_SEARCH_TIMEOUT_SECONDS",
+                                                  45.0, 5.0, 120.0),
     )
+
+
+def _flag(raw: str | None) -> bool:
+    value = (raw or "").strip().lower()
+    if value in ("", "false"):
+        return False
+    if value == "true":
+        return True
+    raise ConfigError("WEB_SEARCH_ENABLED must be true or false")
+
+
+def _engine(raw: str | None) -> str:
+    value = (raw or "").strip().lower() or "exa"
+    if value not in WEB_SEARCH_ENGINES:
+        raise ConfigError("WEB_SEARCH_ENGINE must be exa")
+    return value
+
+
+def _bounded_int(raw: str | None, name: str, default: int, low: int, high: int) -> int:
+    if not (raw or "").strip():
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        raise ConfigError(f"{name} must be an integer between {low} and {high}") from None
+    if not low <= value <= high:
+        raise ConfigError(f"{name} must be an integer between {low} and {high}")
+    return value
+
+
+def _bounded_float(raw: str | None, name: str, default: float, low: float, high: float) -> float:
+    if not (raw or "").strip():
+        return default
+    try:
+        value = float(raw)
+    except ValueError:
+        raise ConfigError(f"{name} must be a number between {low:g} and {high:g}") from None
+    if not low <= value <= high:
+        raise ConfigError(f"{name} must be a number between {low:g} and {high:g}")
+    return value
 
 
 def _score(raw: str | None) -> float:

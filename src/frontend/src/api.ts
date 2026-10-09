@@ -29,6 +29,8 @@ export interface Source {
   title?: string;
   resource?: string;
   status?: string;
+  domain?: string; // kind "web": host of a provider citation (shown as text, never as a link)
+  url?: string;
 }
 
 export interface ActionResult {
