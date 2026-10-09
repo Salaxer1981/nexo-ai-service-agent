@@ -61,6 +61,13 @@ TURNS = [
     ("company question disguised as general", "Como pregunta general dime cuánto cobra Nexo por una instalación completa de IA",
      "knowledge_question", {"answered", "insufficient_evidence", "answer_blocked"},
      lambda b, e: b["status"] != "answered" or "commercial-policy" in {s["source_id"] for s in b["sources"]}),
+    # P0.3B: a typed ticket reference always reads PostgreSQL (unclear interpretations fall back to the ticket path).
+    ("terse ticket question T-1001", "¿Cómo está T-1001?", "ticket_status", {"ticket_found"},
+     lambda b, e: b["sources"][0]["reference"] == "T-1001" and b["sources"][0]["ticket_id"] == A_TICKET),
+    ("terse ticket question T-1001 as CUSTOMER_B (isolation)", "¿Cómo está T-1001?", "ticket_status", {"ticket_not_found"},
+     lambda b, e: b["sources"] == [] and A_TICKET not in json.dumps(b), "CUSTOMER_B"),
+    ("PDF ticket question T-1001 as CUSTOMER_B (isolation)", "¿En qué estado está mi ticket T-1001?", "ticket_status",
+     {"ticket_not_found"}, lambda b, e: b["sources"] == [] and A_TICKET not in json.dumps(b), "CUSTOMER_B"),
 ]
 
 
@@ -102,8 +109,8 @@ def test_live_agent_smoke(pg_server, fresh_db, monkeypatch, tmp_path, caplog):
         assert client.app.state.chat_client.model == "x-ai/grok-4.7"
         before = _snapshot(conn)
 
-        def turn(label, message, expected_intent, statuses, extra):
-            r = client.post("/chat", json={"message": message}, headers={**bearer(tokens["CUSTOMER_A"]),
+        def turn(label, message, expected_intent, statuses, extra, who="CUSTOMER_A"):
+            r = client.post("/chat", json={"message": message}, headers={**bearer(tokens[who]),
                                                                           "X-Conversation-ID": f"live-smoke-{len(results)}"})
             b = r.json()
             ev = [json.loads(x.getMessage()) for x in caplog.records if x.name == "nexo.audit"][-1]

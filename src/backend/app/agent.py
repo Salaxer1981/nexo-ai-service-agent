@@ -258,6 +258,10 @@ def _route(message, customer_id, client, embedding_provider, conn, min_score, co
         if proposal.rejected_fields:
             audit["rejected_fields"] = proposal.rejected_fields
         reply = AgentReply(intent, "proposed", "", proposal=proposal)
+    elif intent == UNCLEAR and (_UUID.search(message) or _TICKET_REF.search(message)):
+        # The customer typed a ticket identifier: deterministic read-only fallback to the PostgreSQL ticket path.
+        audit.update(interpreted_intent=intent, unclear_guard="ticket_identifier", intent=TICKET)
+        reply = _ticket(message, customer_id, conn, audit)
     else:
         reply = AgentReply(intent, "clarification_needed", MSG_UNCLEAR)
     reply.audit = {**audit, **reply.audit}  # the agent status is logged as `result` (HTTP status stays `status`)

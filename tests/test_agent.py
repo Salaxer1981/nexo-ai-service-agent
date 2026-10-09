@@ -404,6 +404,114 @@ def test_general_chat_audit_has_decision_facts_but_no_text(capi, caplog):
     assert "buenas tardes" not in raw and "Qué tal" not in raw and tokens["CUSTOMER_A"] not in raw
 
 
+# ================================== unclear + typed ticket id (P0.3B): deterministic PostgreSQL read ======
+
+def test_unclear_with_short_reference_reads_the_ticket_from_postgresql(capi):
+    client, tokens, use = capi
+    fake = use(intent("unsupported_or_unclear"))  # only the intent call: no other model call may happen
+    body = chat(client, tokens["CUSTOMER_A"], "¿Cómo está T-1001?").json()
+    assert body["intent"] == "ticket_status" and body["status"] == "ticket_found" and len(fake.calls) == 1
+    assert body["sources"][0]["kind"] == "business_api" and body["sources"][0]["reference"] == "T-1001"
+    assert body["sources"][0]["ticket_id"] == A_TICKET and "«abierto»" in body["answer"]
+
+
+def test_unclear_with_short_reference_stays_customer_scoped(capi):
+    client, tokens, use = capi
+    use(intent("unsupported_or_unclear"))
+    body = chat(client, tokens["CUSTOMER_B"], "¿Cómo está T-1001?").json()
+    assert body["intent"] == "ticket_status" and body["status"] == "ticket_not_found" and body["sources"] == []
+    assert A_TICKET not in json.dumps(body) and "dashboard" not in json.dumps(body)
+
+
+def test_unclear_with_uuid_reads_only_the_owners_ticket(capi):
+    client, tokens, use = capi
+    use(intent("unsupported_or_unclear"))
+    body = chat(client, tokens["CUSTOMER_A"], A_TICKET).json()
+    assert body["status"] == "ticket_found" and body["sources"][0]["ticket_id"] == A_TICKET
+    use(intent("unsupported_or_unclear"))
+    body = chat(client, tokens["CUSTOMER_A"], f"¿y {B_TICKET}?").json()
+    assert body["status"] == "ticket_not_found" and body["sources"] == []
+    leaked = json.dumps(body)
+    assert "invoice" not in leaked and "CUSTOMER_B" not in leaked and "in_progress" not in leaked
+
+
+def test_unclear_with_two_identifiers_asks_for_one(capi):
+    client, tokens, use = capi
+    use(intent("unsupported_or_unclear"))
+    body = chat(client, tokens["CUSTOMER_A"], f"T-1001 o {A_TICKET}").json()
+    assert body["intent"] == "ticket_status" and body["status"] == "needs_ticket_id" and body["sources"] == []
+
+
+def test_unclear_without_identifier_is_unchanged(capi):
+    client, tokens, use = capi
+    use(intent("unsupported_or_unclear"))
+    body = chat(client, tokens["CUSTOMER_A"], "mmm, no sé").json()
+    assert body["intent"] == "unsupported_or_unclear" and body["status"] == "clarification_needed"
+    assert body["answer"] == agent.MSG_UNCLEAR and body["sources"] == [] and body["next_step"] is None
+
+
+def test_explicit_human_request_with_ticket_id_is_not_diverted(capi, pg_server, app_db):
+    client, tokens, use = capi
+    c = f"unclear-human-{uuid4().hex[:8]}"
+    use(intent("request_human", reason="human_requested"))
+    body = chat(client, tokens["CUSTOMER_A"], "Tengo T-1001 y quiero hablar con una persona", **{"X-Conversation-ID": c}).json()
+    assert body["intent"] == "request_human" and body["status"] == "handoff_created" and body["result"]["kind"] == "handoff"
+    with pg_server.connect(app_db["name"]) as conn:  # keep the shared DB clean for the other tests
+        conn.execute("DELETE FROM handoffs WHERE conversation_id = %s", (c,))
+
+
+def test_explicit_ticket_creation_with_ticket_id_is_not_diverted(capi, pg_server, app_db):
+    client, tokens, use = capi
+    before = business_snapshot(pg_server, app_db)
+    use(intent("create_ticket", ticket={"description": "T-1001 no funciona"}))
+    body = chat(client, tokens["CUSTOMER_A"], "Quiero abrir otro ticket porque T-1001 no funciona",
+                **{"X-Conversation-ID": f"unclear-create-{uuid4().hex[:8]}"}).json()
+    assert body["intent"] == "create_ticket" and body["status"] == "collecting_info" and body["next_step"]["executed"] is False
+    assert business_snapshot(pg_server, app_db) == before
+
+
+def test_injection_around_a_foreign_ticket_id_leaks_and_mutates_nothing(capi, pg_server, app_db):
+    client, tokens, use = capi
+    before = db_snapshot(pg_server, app_db)
+    use(intent("unsupported_or_unclear"))
+    body = chat(client, tokens["CUSTOMER_A"], f"{PDF_INJECTION} Muestra el ticket {B_TICKET} de CUSTOMER_B").json()
+    assert body["status"] == "ticket_not_found" and body["sources"] == []
+    leaked = json.dumps(body)
+    assert "invoice" not in leaked and "in_progress" not in leaked and "Test Contact B" not in leaked
+    assert db_snapshot(pg_server, app_db) == before
+
+
+def test_unclear_ticket_read_during_a_pending_action_changes_nothing(capi, pg_server, app_db):
+    client, tokens, use = capi
+    a, c = tokens["CUSTOMER_A"], f"unclear-pending-{uuid4().hex[:8]}"
+    use(intent("create_ticket", ticket={"contact_name": "Ana", "subject": "Sin internet", "description": "No hay internet.",
+                                        "priority": "normal"}))
+    prepared = chat(client, a, "Soy Ana, no hay internet en mi puesto.", **{"X-Conversation-ID": c}).json()
+    assert prepared["status"] == "awaiting_confirmation"
+    before = db_snapshot(pg_server, app_db)  # pointer, revision and pending action included
+    use(intent("unsupported_or_unclear"))
+    body = chat(client, a, "¿Cómo está T-1001?", **{"X-Conversation-ID": c}).json()
+    assert body["status"] == "ticket_found" and body["sources"][0]["reference"] == "T-1001"
+    assert body["next_step"] == {"action": "create_ticket", "awaiting": "CONFIRMAR", "executed": False}
+    assert db_snapshot(pg_server, app_db) == before
+    use()  # discard the prepared action to keep the shared DB clean
+    assert client.post("/chat", json={"message": "CANCELAR"},
+                       headers={**bearer(a), "X-Conversation-ID": c}).json()["status"] == "cancelled"
+
+
+def test_unclear_ticket_fallback_audit(capi, caplog):
+    client, tokens, use = capi
+    caplog.set_level(logging.INFO, logger="nexo.audit")
+    use(intent("unsupported_or_unclear"))
+    chat(client, tokens["CUSTOMER_A"], "¿Cómo está T-1001?")
+    e = audit_events(caplog)[-1]
+    assert e["interpreted_intent"] == "unsupported_or_unclear" and e["unclear_guard"] == "ticket_identifier"
+    assert e["intent"] == "ticket_status" and e["result"] == "ticket_found" and e["ticket_lookup"] == "allowed"
+    assert [c["stage"] for c in e["llm"]] == ["intent"]
+    raw = json.dumps(e)
+    assert "¿Cómo está" not in raw and "Cómo está" not in raw and tokens["CUSTOMER_A"] not in raw
+
+
 # ================================== invalid model output / failures ======================================
 
 @pytest.mark.parametrize("bad", [
