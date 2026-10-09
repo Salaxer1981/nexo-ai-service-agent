@@ -54,6 +54,11 @@ services:
       RAG_KNOWLEDGE_DIR: /srv/knowledge
       # Agent chat model via OpenRouter (same key). Without a key /chat answers 503.
       OPENROUTER_CHAT_MODEL: ${OPENROUTER_CHAT_MODEL:-x-ai/grok-4.7}
+      # Web search (P0.4, OpenRouter web plugin with Exa; same key). OFF unless WEB_SEARCH_ENABLED=true in .env.
+      WEB_SEARCH_ENABLED: ${WEB_SEARCH_ENABLED:-false}
+      WEB_SEARCH_ENGINE: ${WEB_SEARCH_ENGINE:-exa}
+      WEB_SEARCH_MAX_RESULTS: ${WEB_SEARCH_MAX_RESULTS:-3}
+      WEB_SEARCH_TIMEOUT_SECONDS: ${WEB_SEARCH_TIMEOUT_SECONDS:-45}
     volumes:
       # Versioned knowledge base, read-only: edit the files, then run `python -m app.rag_ingest`.
       - ./knowledge:/srv/knowledge:ro

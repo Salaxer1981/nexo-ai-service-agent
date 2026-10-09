@@ -193,3 +193,99 @@ def test_web_dockerfile_base_is_pinned_and_runs_unprivileged():
     assert bases and all(_is_pinned(b) for b in bases), bases
     assert re.search(r"^USER node$", dockerfile, flags=re.M)
     assert "ARG " not in dockerfile  # no build-time arguments at all
+
+
+# --- P0.4F: web search configuration wiring (backend only, OFF by default) ---------------------
+
+WEB_VARS = ("WEB_SEARCH_ENABLED", "WEB_SEARCH_ENGINE", "WEB_SEARCH_MAX_RESULTS", "WEB_SEARCH_TIMEOUT_SECONDS")
+_SUBST = re.compile(r"\$\$|\$\{(\w+)(?:(:?[-?])([^}]*))?\}")
+
+
+def _interpolate(value, env: dict) -> str:
+    """Compose variable substitution (`${V}`, `${V:-d}`, `${V-d}`, `${V:?m}`, `${V?m}`, `$$`); unknown forms fail."""
+    def sub(m):
+        if m.group(0) == "$$":
+            return "$"
+        name, op, arg = m.groups()
+        set_, nonempty = name in env, bool(env.get(name))
+        if op is None:
+            return env.get(name, "")
+        if op in (":-", "-"):
+            return env[name] if (nonempty if op == ":-" else set_) else arg
+        if not (nonempty if op == ":?" else set_):
+            raise KeyError(f"{name}: {arg}")
+        return env[name]
+    out = _SUBST.sub(sub, str(value))
+    assert "${" not in out, f"unsupported substitution in {value!r}"
+    return out
+
+
+def _required_env() -> dict:
+    return {"POSTGRES_DB": "nexo", "POSTGRES_USER": "nexo", "POSTGRES_PASSWORD": "x" * 32,
+            "AUTH_TOKEN_CUSTOMER_A": "a" * 32, "AUTH_TOKEN_CUSTOMER_B": "b" * 32,
+            "LEAD_WRITER_TOKEN_SHA256": "0" * 64, "N8N_ENCRYPTION_KEY": "k" * 32}
+
+
+def _service_env(service: str, env: dict) -> dict:
+    return {k: _interpolate(v, env) for k, v in SERVICES[service].get("environment", {}).items()}
+
+
+def test_backend_receives_web_search_vars_with_safe_defaults():
+    env = SERVICES["backend"]["environment"]
+    assert {k: env[k] for k in WEB_VARS} == {
+        "WEB_SEARCH_ENABLED": "${WEB_SEARCH_ENABLED:-false}",
+        "WEB_SEARCH_ENGINE": "${WEB_SEARCH_ENGINE:-exa}",
+        "WEB_SEARCH_MAX_RESULTS": "${WEB_SEARCH_MAX_RESULTS:-3}",
+        "WEB_SEARCH_TIMEOUT_SECONDS": "${WEB_SEARCH_TIMEOUT_SECONDS:-45}"}
+
+
+@pytest.mark.parametrize("dotenv", [{}, {k: "" for k in WEB_VARS}], ids=["absent", "empty"])
+def test_web_search_defaults_reach_the_backend_disabled(dotenv):
+    from app.config import load_settings
+    from app.llm import chat_client_from_settings
+    env = _service_env("backend", {**_required_env(), **dotenv, "OPENROUTER_API_KEY": "sk-test"})
+    assert {k: env[k] for k in WEB_VARS} == {"WEB_SEARCH_ENABLED": "false", "WEB_SEARCH_ENGINE": "exa",
+                                             "WEB_SEARCH_MAX_RESULTS": "3", "WEB_SEARCH_TIMEOUT_SECONDS": "45"}
+    s = load_settings(env)
+    assert (s.web_search_enabled, s.web_search_engine, s.web_search_max_results, s.web_search_timeout_seconds) == \
+        (False, "exa", 3, 45.0)
+    assert chat_client_from_settings(s).web_search is None  # disabled: no external search is ever requested
+
+
+def test_web_search_enabled_in_dotenv_reaches_the_backend():
+    from app.config import load_settings
+    from app.llm import WebSearchConfig, chat_client_from_settings
+    env = _service_env("backend", {**_required_env(), "OPENROUTER_API_KEY": "sk-test", "WEB_SEARCH_ENABLED": "true",
+                                   "WEB_SEARCH_ENGINE": "exa", "WEB_SEARCH_MAX_RESULTS": "3",
+                                   "WEB_SEARCH_TIMEOUT_SECONDS": "45"})
+    assert env["WEB_SEARCH_ENABLED"] == "true"
+    assert chat_client_from_settings(load_settings(env)).web_search == WebSearchConfig("exa", 3, 45.0)
+
+
+def test_web_search_vars_reach_no_other_service():
+    for name in ("db", "n8n", "web"):
+        svc = SERVICES[name]
+        assert not [k for k in svc.get("environment", {}) if k.startswith("WEB_SEARCH")], name
+        assert "WEB_SEARCH" not in str(svc.get("build", "")) and "WEB_SEARCH" not in str(svc.get("env_file", "")), name
+    assert "env_file" not in SERVICES["backend"]  # explicit allow-list only: the .env is never passed wholesale
+    for path in ("src/frontend/Dockerfile", "src/frontend/server/server.mjs"):
+        assert "WEB_SEARCH" not in (ROOT / path).read_text(encoding="utf-8"), path
+
+
+def test_web_search_vars_are_optional_and_carry_no_secret():
+    env = SERVICES["backend"]["environment"]
+    for k in WEB_VARS:
+        assert re.fullmatch(r"\$\{" + k + r":-[a-z0-9]+\}", env[k]), k  # optional with a plain default; never required
+        assert not any(w in k for w in ("KEY", "TOKEN", "PASSWORD", "SECRET"))
+    assert env["OPENROUTER_API_KEY"] == "${OPENROUTER_API_KEY:-}"  # web search reuses the existing key: no new secret
+
+
+def test_whole_compose_interpolates_with_only_the_required_vars():
+    # Static stand-in for `docker compose config` (no Docker host here): every substitution uses a supported form,
+    # an .env without any WEB_SEARCH_* line still renders, and a missing required var still fails.
+    for name in SERVICES:
+        _service_env(name, _required_env())
+        for mapping in SERVICES[name].get("ports", []):
+            _interpolate(mapping, _required_env())
+    with pytest.raises(KeyError):
+        _service_env("backend", {k: v for k, v in _required_env().items() if k != "POSTGRES_PASSWORD"})
